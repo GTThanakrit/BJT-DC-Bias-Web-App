@@ -1,0 +1,16 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+# Local secrets
+.env
+*.key
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+# Flask instance data
+instance/

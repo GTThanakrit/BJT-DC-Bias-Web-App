@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BJT DC Bias Calculator · ENG29 2121</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <p class="eyebrow">ENG29 2121 · LAB 02</p>
+      <h1>BJT DC Bias Calculator</h1>
+      <p class="subtitle">NPN Common-Emitter · Voltage-Divider Bias · Forward-Active Approximation</p>
+    </div>
+  </header>
+
+  <main class="wrap layout">
+    <section class="panel" aria-labelledby="input-title">
+      <h2 id="input-title">พารามิเตอร์วงจร</h2>
+
+      {% if errors %}
+      <div class="alert alert-error" role="alert">
+        <strong>ตรวจสอบข้อมูลอีกครั้ง</strong>
+        <ul>
+          {% for field in fields if field.error %}
+          <li>{{ field.label }}: {{ field.error }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      {% if form_error %}
+      <div class="alert alert-error" role="alert">
+        <strong>คำนวณไม่ได้</strong>
+        <p>{{ form_error }}</p>
+      </div>
+      {% endif %}
+
+      <form method="post" action="{{ url_for('calculate') }}" id="bias-form" novalidate>
+        <div class="fields">
+          {% for field in fields %}
+          <div class="field{% if field.error %} has-error{% endif %}">
+            <label for="{{ field.key }}">
+              <span class="field-label">{{ field.label }}</span>
+              {% if field.unit %}<span class="field-unit">{{ field.unit }}</span>{% endif %}
+            </label>
+            <input
+              type="text"
+              inputmode="decimal"
+              id="{{ field.key }}"
+              name="{{ field.key }}"
+              value="{{ field.value }}"
+              autocomplete="off"
+              {% if field.error %}aria-invalid="true" aria-describedby="{{ field.key }}-error"{% endif %}>
+            <p class="field-help">{{ field.help }}</p>
+            {% if field.error %}<p class="field-error" id="{{ field.key }}-error">{{ field.error }}</p>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+
+        <p class="hint">ความต้านทานกรอกเป็นหน่วยโอห์ม (Ω) เช่น 100 kΩ = 100000</p>
+        <button type="submit">Calculate DC Bias</button>
+      </form>
+    </section>
+
+    <section class="panel" aria-labelledby="result-title" aria-live="polite">
+      <h2 id="result-title">DC Bias Results</h2>
+
+      {% if result %}
+      <p class="region region-{{ result.region_tone }}">
+        <span>Operating region</span>
+        <strong>{{ result.region_label }}</strong>
+      </p>
+
+      {% if result.warning %}
+      <div class="alert alert-warning" role="status">
+        <strong>ข้อจำกัดของแบบจำลอง</strong>
+        <p>{{ result.warning }}</p>
+      </div>
+      {% endif %}
+
+      <table{% if not result.trustworthy %} class="untrusted"{% endif %}>
+        <thead>
+          <tr><th>ปริมาณ</th><th>ความหมาย</th><th>ค่า</th></tr>
+        </thead>
+        <tbody>
+          {% for symbol, meaning, value in result.rows %}
+          <tr>
+            <th scope="row"><code>{{ symbol }}</code></th>
+            <td>{{ meaning }}</td>
+            <td class="value">{{ value }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="empty">
+        กรอกค่าแล้วกด <strong>Calculate DC Bias</strong> ผลลัพธ์จะแสดงที่นี่
+      </p>
+      {% endif %}
+    </section>
+
+    <section class="panel formulas" aria-labelledby="formula-title">
+      <h2 id="formula-title">สมการที่ใช้</h2>
+      <p class="muted">
+        แบบจำลอง forward-active: β และ VBE คงที่ ไม่คิด Early effect, leakage
+        หรือความต้านทานภายในของแหล่งจ่าย
+      </p>
+      <ul>
+        <li><code>VTH = VCC · R2 / (R1 + R2)</code></li>
+        <li><code>RTH = R1 · R2 / (R1 + R2)</code></li>
+        <li><code>IB = (VTH − VBE) / (RTH + (β + 1)·RE)</code></li>
+        <li><code>IC = β·IB</code>, <code>IE = (β + 1)·IB</code></li>
+        <li><code>VE = IE·RE</code>, <code>VB = VE + VBE</code></li>
+        <li><code>VC = VCC − IC·RC</code>, <code>VCE = VC − VE</code></li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <p>ผลลัพธ์ใช้ได้เฉพาะย่าน Forward-Active · ตรวจสอบกับ ngspice หรือการวัดจริงก่อนนำไปใช้งาน</p>
+  </footer>
+</body>
+</html>
