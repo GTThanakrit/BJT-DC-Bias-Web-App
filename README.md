@@ -1,27 +1,27 @@
 # BJT DC Bias Simulator — ENG29 2121 Lab 02
 
-Flask web application that computes the DC operating point of an NPN BJT
-common-emitter amplifier with **voltage-divider bias**, using the
-forward-active approximation.
+เว็บแอป Flask สำหรับคำนวณจุดทำงานกระแสตรง (DC Operating Point) ของทรานซิสเตอร์
+NPN แบบ Common-Emitter ที่ไบอัสด้วยวงจรแบ่งแรงดัน (Voltage-Divider Bias)
+โดยใช้สมมติฐาน Forward-Active Approximation
 
-The calculations run in Python on the server. The HTML page never computes or
-hard-codes a result.
+การคำนวณทั้งหมดเกิดใน Python ฝั่ง Server หน้า HTML ไม่ได้คำนวณเองและไม่ได้ฝัง
+ตัวเลขคำตอบไว้
 
-## Scope (Week 2)
+## ขอบเขตงาน (Week 2)
 
-| In scope | Out of scope |
+| อยู่ในขอบเขต | ไม่อยู่ในขอบเขต |
 |---|---|
-| Input: VCC, R1, R2, RC, RE, β, VBE | AC small-signal, gain, Bode plot |
-| Output: VTH, RTH, IB, IC, IE, VB, VE, VC, VCE | Transient / signal generator |
-| Input validation and region warnings | SPICE solver, load line |
-| Unit tests + Flask HTTP tests | FET, other bias topologies |
+| รับค่า VCC, R1, R2, RC, RE, β, VBE | AC small-signal, gain, Bode plot |
+| แสดง VTH, RTH, IB, IC, IE, VB, VE, VC, VCE | Transient / signal generator |
+| ตรวจสอบข้อมูลเข้า + เตือนเมื่อออกนอกย่าน | SPICE solver, load line |
+| Unit tests + Flask HTTP tests | FET, bias topology อื่น |
 
-## Requirements
+## ความต้องการของระบบ
 
-- Python 3.10 or newer
-- Flask 3.x (installed from `requirements.txt`)
+- Python 3.10 ขึ้นไป
+- Flask 3.x (ติดตั้งจาก `requirements.txt`)
 
-## Install and run
+## ติดตั้งและรัน
 
 ```powershell
 python -m venv .venv
@@ -31,34 +31,36 @@ python -m pip install -r requirements.txt
 python -m flask --app app run --debug
 ```
 
-Open <http://127.0.0.1:5000/> in a browser.
+เปิด <http://127.0.0.1:5000/> ใน Browser
 
-## Tests
+> ต้องเปิดผ่าน Flask Server เท่านั้น ไม่ใช่ double-click ไฟล์ `index.html`
+> เพราะตัวเลขต้องถูกคำนวณจาก Python
+
+## เทสต์
 
 ```powershell
 python -m unittest discover -s tests -v
 ```
 
-Two suites run: `tests/test_dc_bias.py` (engineering math, 13 tests) and
-`tests/test_web.py` (HTTP routes through Flask's test client, 8 tests).
-Run both commands from the repository root: the tests import `app` from the
-current directory.
+มี 2 ชุด: `tests/test_dc_bias.py` (สมการวิศวกรรม 13 เทสต์) และ
+`tests/test_web.py` (HTTP ผ่าน Flask test client 8 เทสต์) รวม **21 เทสต์**
+ให้รันจากโฟลเดอร์รากของ repository เพราะเทสต์ import `app` จากโฟลเดอร์ปัจจุบัน
 
-## Input units
+## หน่วยของข้อมูลเข้า
 
-- `VCC`, `VBE` in volts.
-- `R1`, `R2`, `RC`, `RE` in ohms. Enter `100000` for 100 kΩ.
-- `β` is the DC current gain hFE (dimensionless, > 0).
+- `VCC`, `VBE` หน่วยโวลต์ (V)
+- `R1`, `R2`, `RC`, `RE` หน่วยโอห์ม (Ω) เช่น 100 kΩ ให้กรอก `100000`
+- `β` คือ DC current gain (hFE) ไม่มีหน่วย และต้องมากกว่า 0
 
-Accepted range: `VCC ≤ 10 kV`, `R ≤ 1 TΩ`, `β ≤ 1 000 000`, and `0 < VBE < VCC`.
-Values outside these bounds are rejected instead of producing `inf`/`nan`.
+ช่วงที่รับได้: `VCC ≤ 10 kV`, `R ≤ 1 TΩ`, `β ≤ 1 000 000` และ `0 < VBE < VCC`
+ค่าที่เกินขอบเขตจะถูกปฏิเสธ ไม่ปล่อยให้แสดงเป็น `inf`/`nan`
 
-## Reference case
+## ตัวอย่างอ้างอิง
 
 VCC = 12 V, R1 = 100 kΩ, R2 = 22 kΩ, RC = 2.2 kΩ, RE = 1 kΩ, β = 100,
-VBE = 0.70 V.
+VBE = 0.70 V
 
-| Quantity | Value |
+| ปริมาณ | ค่า |
 |---|---|
 | VTH | 2.164 V |
 | RTH | 18.03 kΩ |
@@ -70,14 +72,13 @@ VBE = 0.70 V.
 | VC | 9.294 V |
 | VCE | 8.052 V |
 
-Region: **Forward-Active**.
+ย่านการทำงาน: **Forward-Active**
 
-The numbers above are derived by hand from the equations in
-`docs/validation.md`, not copied from the app output.
+ตัวเลขข้างบนคำนวณด้วยมือจากสมการใน `docs/validation.md` ไม่ได้คัดลอกมาจากผลของโปรแกรม
 
-## Model and limitations
+## แบบจำลองและข้อจำกัด
 
-Equations used (forward-active, constant β and VBE):
+สมการที่ใช้ (forward-active, β และ VBE คงที่):
 
 ```
 VTH = VCC · R2 / (R1 + R2)
@@ -91,25 +92,24 @@ VC  = VCC − IC·RC
 VCE = VC − VE
 ```
 
-The app reports a warning and refuses to present the result as trustworthy when
-the forward-active assumption fails:
+โปรแกรมจะแจ้งเตือนและไม่รายงานผลว่าเชื่อถือได้ เมื่อสมมติฐาน forward-active ใช้ไม่ได้:
 
-- `VTH ≤ VBE` → **Cutoff** (no base current; the currents are reported as 0).
-- `VCE ≤ 0.3 V` → **Saturation** (values shown come from equations that no
-  longer describe the circuit).
-- `0.3 V < VCE < 1.0 V` → still active, but flagged as **near saturation**.
-- `0 < VTH − VBE < 10 mV` → still active, but flagged as **near cutoff**.
+- `VTH ≤ VBE` → **Cutoff** (ไม่มีกระแสฐาน กระแสที่แสดงเป็น 0)
+- `VCE ≤ 0.3 V` → **Saturation** (ตัวเลขมาจากสมการที่อธิบายวงจรจริงไม่ได้แล้ว
+  และถูกขีดฆ่าในหน้าจอ)
+- `0.3 V < VCE < 1.0 V` → ยังเป็น active แต่เตือนว่า **ใกล้ Saturation**
+- `0 < VTH − VBE < 10 mV` → ยังเป็น active แต่เตือนว่า **ใกล้ Cutoff**
 
-Ignored effects: Early effect, leakage currents, temperature drift, source
-resistance, component tolerance.
+ผลกระทบที่ยังไม่คิด: Early effect, กระแสรั่ว, การเปลี่ยนแปลงตามอุณหภูมิ,
+ความต้านทานของแหล่งจ่าย และค่าคลาดเคลื่อนของอุปกรณ์
 
-## Project layout
+## โครงสร้างโปรเจกต์
 
 ```
-transistor-simulator/
-├── app.py                  # Flask routes, form parsing, display formatting
-├── dc_bias.py              # engineering calculations (no Flask/HTML)
-├── templates/index.html    # Jinja form + results
+BJT-DC-Bias-Web-App/
+├── app.py                  # Flask routes, parse ฟอร์ม, จัดรูปแบบหน่วย
+├── dc_bias.py              # สมการวิศวกรรมล้วน ๆ (ไม่รู้จัก Flask/HTML)
+├── templates/index.html    # ฟอร์ม + ตารางผลลัพธ์ (Jinja)
 ├── static/style.css        # responsive layout
 ├── tests/
 │   ├── test_dc_bias.py
@@ -117,20 +117,21 @@ transistor-simulator/
 ├── docs/
 │   ├── design-note.md
 │   ├── validation.md
-│   └── reflection.md
+│   ├── reflection.md
+│   └── screenshots/
 ├── requirements.txt
 ├── AGENTS.md
 └── README.md
 ```
 
-## Submission checklist (handout A1–A7)
+## เกณฑ์ตรวจรับ (A1–A7)
 
-- [x] A1 `GET /` returns the form with HTTP 200
-- [x] A2 `POST /` computes in Python and renders results
-- [x] A3 results agree with an independent hand calculation
-- [x] A4 invalid input (R≤0, β≤0, non-numeric, missing) shows readable errors
-- [x] A5 cutoff / saturation warnings
-- [x] A6 21 automated tests (13 engineering + 8 HTTP)
-- [x] A7 repository pushed and reproducible: a fresh clone of
-      `https://github.com/GTThanakrit/BJT-DC-Bias-Web-App.git` installs with
-      `pip install -r requirements.txt` and passes all 21 tests
+- [x] A1 `GET /` คืนหน้าฟอร์มด้วย HTTP 200
+- [x] A2 `POST /` คำนวณใน Python แล้วแสดงผล
+- [x] A3 ผลตรงกับการคำนวณมือภายใต้แบบจำลองเดียวกัน
+- [x] A4 ข้อมูลผิด (R≤0, β≤0, ไม่ใช่ตัวเลข, ไม่กรอก) แจ้ง error ที่อ่านได้
+- [x] A5 เตือนกรณี Cutoff / Saturation
+- [x] A6 เทสต์อัตโนมัติ 21 ตัว (13 engineering + 8 HTTP)
+- [x] A7 push ขึ้น GitHub แล้วและทำซ้ำได้: clone จาก
+      `https://github.com/GTThanakrit/BJT-DC-Bias-Web-App.git`
+      แล้ว `pip install -r requirements.txt` + รันเทสต์ผ่านทั้ง 21 ตัว
