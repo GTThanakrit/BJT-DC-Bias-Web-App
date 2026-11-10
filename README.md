@@ -131,5 +131,6 @@ transistor-simulator/
 - [x] A4 invalid input (R≤0, β≤0, non-numeric, missing) shows readable errors
 - [x] A5 cutoff / saturation warnings
 - [x] A6 21 automated tests (13 engineering + 8 HTTP)
-- [ ] A7 repository pushed and reproducible from a fresh clone (do this after
-      committing in GitHub Desktop)
+- [x] A7 repository pushed and reproducible: a fresh clone of
+      `https://github.com/GTThanakrit/BJT-DC-Bias-Web-App.git` installs with
+      `pip install -r requirements.txt` and passes all 21 tests
