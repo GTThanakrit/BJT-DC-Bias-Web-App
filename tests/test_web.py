@@ -133,6 +133,19 @@ class MultiModeRouteTest(unittest.TestCase):
         self.assertIn('name="re"', body)
         self.assertNotIn('name="r1"', body)
 
+    def test_mode_selector_marks_the_current_mode(self):
+        divider = self.client.get("/").get_data(as_text=True)
+        fixed = self.client.get("/?mode=fixed").get_data(as_text=True)
+
+        self.assertIn('<select name="mode"', fixed)
+        self.assertIn('value="divider" selected', divider)
+        self.assertIn('value="fixed" selected', fixed)
+
+    def test_post_form_carries_hidden_mode(self):
+        body = self.post_form(FIXED_FORM).get_data(as_text=True)
+
+        self.assertIn('type="hidden" name="mode"', body)
+
     def test_fixed_mode_post_computes_operating_point(self):
         body = self.post_form(FIXED_FORM).get_data(as_text=True)
 

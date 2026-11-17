@@ -7,17 +7,32 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+  {% set mode_names = {
+    'divider': 'Voltage-Divider Bias',
+    'fixed': 'Fixed Bias',
+    'emitter': 'Emitter Bias'
+  } %}
   <header class="hero">
     <div class="wrap">
-      <p class="eyebrow">ENG29 2121 · LAB 02</p>
+      <p class="eyebrow">ENG29 2121 · LAB 03</p>
       <h1>BJT DC Bias Calculator</h1>
-      <p class="subtitle">NPN Common-Emitter · Voltage-Divider Bias · Forward-Active Approximation</p>
+      <p class="subtitle">NPN Common-Emitter · Divider / Fixed / Emitter Bias · Forward-Active Approximation</p>
     </div>
   </header>
 
   <main class="wrap layout">
     <section class="panel" aria-labelledby="input-title">
       <h2 id="input-title">พารามิเตอร์วงจร</h2>
+
+      <form method="get" action="{{ url_for('index') }}" class="mode-select" id="mode-form">
+        <label for="mode">เลือกวงจร</label>
+        <select name="mode" id="mode">
+          {% for key in modes %}
+          <option value="{{ key }}"{% if key == mode %} selected{% endif %}>{{ mode_names[key] }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="button-secondary">เลือกวงจร</button>
+      </form>
 
       {% if errors %}
       <div class="alert alert-error" role="alert">
@@ -38,6 +53,7 @@
       {% endif %}
 
       <form method="post" action="{{ url_for('calculate') }}" id="bias-form" novalidate>
+        <input type="hidden" name="mode" value="{{ mode }}">
         <div class="fields">
           {% for field in fields %}
           <div class="field{% if field.error %} has-error{% endif %}">
@@ -59,13 +75,13 @@
           {% endfor %}
         </div>
 
-        <p class="hint">ความต้านทานกรอกเป็นหน่วยโอห์ม (Ω) เช่น 100 kΩ = 100000</p>
+        <p class="hint">ความต้านทานกรอกเป็นหน่วยโอห์ม (Ω) เช่น 1 MΩ = 1000000</p>
         <button type="submit">Calculate DC Bias</button>
       </form>
     </section>
 
     <section class="panel" aria-labelledby="result-title" aria-live="polite">
-      <h2 id="result-title">DC Bias Results</h2>
+      <h2 id="result-title">DC Bias Results · {{ mode_label }}</h2>
 
       {% if result %}
       <p class="region region-{{ result.region_tone }}">
@@ -102,19 +118,34 @@
     </section>
 
     <section class="panel formulas" aria-labelledby="formula-title">
-      <h2 id="formula-title">สมการที่ใช้</h2>
+      <h2 id="formula-title">สมการที่ใช้ · {{ mode_label }}</h2>
       <p class="muted">
         แบบจำลอง forward-active: β และ VBE คงที่ ไม่คิด Early effect, leakage
         หรือความต้านทานภายในของแหล่งจ่าย
       </p>
+      {% if mode == 'divider' %}
       <ul>
-        <li><code>VTH = VCC · R2 / (R1 + R2)</code></li>
-        <li><code>RTH = R1 · R2 / (R1 + R2)</code></li>
+        <li><code>VTH = VCC · R2 / (R1 + R2)</code>, <code>RTH = R1 · R2 / (R1 + R2)</code></li>
         <li><code>IB = (VTH − VBE) / (RTH + (β + 1)·RE)</code></li>
+        <li><code>VE = IE·RE</code>, <code>VB = VE + VBE</code></li>
+        <li><code>IC = β·IB</code>, <code>IE = (β + 1)·IB</code></li>
+        <li><code>VC = VCC − IC·RC</code>, <code>VCE = VC − VE</code></li>
+      </ul>
+      {% elif mode == 'fixed' %}
+      <ul>
+        <li><code>IB = (VCC − VBE) / RB</code>, <code>VE = 0</code></li>
+        <li><code>IC = β·IB</code>, <code>IE = (β + 1)·IB</code></li>
+        <li><code>VB = VBE</code>, <code>VC = VCC − IC·RC</code></li>
+        <li><code>VCE = VC − VE</code></li>
+      </ul>
+      {% elif mode == 'emitter' %}
+      <ul>
+        <li><code>IB = (VCC − VBE) / (RB + (β + 1)·RE)</code></li>
         <li><code>IC = β·IB</code>, <code>IE = (β + 1)·IB</code></li>
         <li><code>VE = IE·RE</code>, <code>VB = VE + VBE</code></li>
         <li><code>VC = VCC − IC·RC</code>, <code>VCE = VC − VE</code></li>
       </ul>
+      {% endif %}
     </section>
   </main>
 

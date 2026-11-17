@@ -122,6 +122,32 @@ button {
 button:hover { background: linear-gradient(180deg, #23729f, #175a88); }
 button:active { transform: translateY(1px); }
 
+.mode-select {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  background: #f7fafd;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+.mode-select label { font-size: 14px; font-weight: 700; color: #113c60; }
+.mode-select select {
+  flex: 1 1 180px;
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid #b9cddd;
+  border-radius: 6px;
+  font: inherit;
+  background: #fff;
+  color: var(--ink);
+}
+.mode-select button { width: auto; padding: 9px 16px; }
+.mode-select .button-secondary { background: linear-gradient(180deg, #0c8078, #086b64); }
+.mode-select .button-secondary:hover { background: linear-gradient(180deg, #0f9188, #09776f); }
+
 .region {
   display: flex;
   align-items: center;
