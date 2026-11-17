@@ -124,6 +124,19 @@ All five cases pass their criterion: for A1–A4 the observed IC is within
 `±0.01 mA` and VCE within `±0.02 V` of the hand-derived expectation; for A5 the
 form rejects the input and renders no result rather than dividing by zero.
 
+### Selector behaviour (why RB can appear to be missing)
+
+The mode `<select>` submits by `GET /?mode=...` only when the adjacent
+**เลือกวงจร** button is pressed — deliberately no JavaScript, per `AGENTS.md`.
+Selecting a different option without pressing the button leaves the previous
+form visible, so switching from Divider to Fixed looks as if RB disappeared.
+This was reproduced in OpenCode Browser: after selecting "Fixed Bias" the
+fields were still `VCC, RC, β, VBE, R1, R2, RE`; after pressing the button the
+URL became `?mode=fixed` and the fields became `VCC, RC, β, VBE, RB`. The
+selector label is now **โหมดวงจร** (distinct from the button) and a hint below
+it states that the button must be pressed and that RB appears only in
+Fixed/Emitter. `tests/test_web.py` pins that hint so it cannot regress.
+
 ### Browser evidence
 
 ![Emitter bias A3 result](screenshots/lab03-emitter.jpeg)
@@ -157,7 +170,7 @@ copied into the template.
 
 ```
 python -m unittest discover -s tests -v
-Ran 38 tests — OK
+Ran 39 tests — OK
 ```
 
 - `tests/test_dc_bias.py` — 13 tests: two hand-calculated operating points,
@@ -168,11 +181,12 @@ Ran 38 tests — OK
   hand calculation, IC falling when RE increases, divider adapter keeping the
   shared result keys, unknown mode returning no fields, common fields present
   in every mode, and missing `rb` reported by `validate_mode`.
-- `tests/test_web.py` — 18 tests: the original 8 (GET form, POST calculation,
+- `tests/test_web.py` — 19 tests: the original 8 (GET form, POST calculation,
   recomputation for a different circuit, zero resistance, non-numeric, missing
-  field, cutoff, saturation) plus 10 mode tests (per-mode field lists, selector,
-  hidden mode, fixed/emitter POST values, unknown mode, invalid/zero RB, and no
-  stale result after an error).
+  field, cutoff, saturation) plus 11 mode tests (per-mode field lists, selector,
+  hidden mode, fixed/emitter POST values, unknown mode, invalid/zero RB, no
+  stale result after an error, and the hint explaining that the mode-change
+  button must be pressed).
 
 ![Forward-active result](screenshots/forward-active.jpeg)
 

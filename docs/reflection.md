@@ -18,9 +18,9 @@ Flask Web App หลายไฟล์สำหรับคำนวณ DC Bias 
 - Emitter (A3): IC = 1.026 mA, VCE = 8.705 V
 - Emitter (A4, RE=2 kΩ): IC = 0.940 mA, VCE = 8.033 V — IC ลดลงเมื่อ RE เพิ่ม
 - A5 (RB=0) ถูกปฏิเสธด้วย `ต้องมากกว่า 0` และไม่แสดงผลลัพธ์
-- Automated tests 38 ตัวผ่านทั้งหมด (13 engineering + 7 Lab 03 + 18 HTTP)
+- Automated tests 39 ตัวผ่านทั้งหมด (13 engineering + 7 Lab 03 + 19 HTTP)
 - Browser A1–A5 ผ่านทั้งหมด และมี screenshot ของ A3 ใน `docs/screenshots/`
-- clone จาก GitHub แบบไม่ใช้ credential แล้วติดตั้งและรันเทสต์ผ่าน (38 tests)
+- clone จาก GitHub แบบไม่ใช้ credential แล้วติดตั้งและรันเทสต์ผ่าน (38 tests ก่อนเพิ่มคำอธิบาย dropdown, 39 tests หลังจากนั้น)
 
 ## สิ่งที่ได้เรียนรู้
 

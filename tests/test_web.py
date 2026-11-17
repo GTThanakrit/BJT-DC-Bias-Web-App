@@ -146,6 +146,12 @@ class MultiModeRouteTest(unittest.TestCase):
 
         self.assertIn('type="hidden" name="mode"', body)
 
+    def test_mode_selector_explains_that_submit_is_required(self):
+        body = self.client.get("/?mode=fixed").get_data(as_text=True)
+
+        self.assertIn("เพื่อเปลี่ยนช่องกรอก", body)
+        self.assertIn("กดปุ่ม", body)
+
     def test_fixed_mode_post_computes_operating_point(self):
         body = self.post_form(FIXED_FORM).get_data(as_text=True)
 

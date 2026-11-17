@@ -35,8 +35,10 @@ python -m pip install -r requirements.txt
 python -m flask --app app run --debug
 ```
 
-เปิด <http://127.0.0.1:5000/> ใน Browser แล้วเลือกวงจรจาก dropdown **เลือกวงจร**
-แล้วกดปุ่ม **เลือกวงจร** (โหลดฟอร์มใหม่แบบ GET ไม่ใช้ JavaScript)
+เปิด <http://127.0.0.1:5000/> ใน Browser แล้วเลือกวงจรจาก dropdown **โหมดวงจร**
+**แล้วกดปุ่ม "เลือกวงจร" ทุกครั้ง** ฟอร์มถึงจะสลับช่องกรอก (โหลดใหม่แบบ GET ไม่ใช้ JavaScript)
+ถ้าเลือกใน dropdown อย่างเดียวโดยยังไม่กดปุ่ม ช่องจะยังเป็นของโหมดเก่าอยู่ — นี่เป็นสาเหตุที่
+ช่อง RB ดูเหมือนหายไป RB จะปรากฏเฉพาะโหมด Fixed / Emitter
 
 ตัวอย่าง URL ที่เลือกโหมดได้โดยตรง:
 
@@ -53,13 +55,13 @@ python -m flask --app app run --debug
 python -m unittest discover -s tests -v
 ```
 
-มี 3 ชุด รวม **38 เทสต์**:
+มี 3 ชุด รวม **39 เทสต์**:
 
 | ไฟล์ | จำนวน | ตรวจอะไร |
 |---|---|---|
 | `tests/test_dc_bias.py` | 13 | สมการ Divider เดิม, Kirchhoff, ขอบเขตย่าน, validation |
 | `tests/test_lab03.py` | 7 | สมการ Fixed/Emitter, RE เปลี่ยนแล้ว IC ลด, adapter ของ Divider, mode helper |
-| `tests/test_web.py` | 18 | HTTP ทุกโหมด, dropdown, error, กันผลเก่าค้าง |
+| `tests/test_web.py` | 19 | HTTP ทุกโหมด, dropdown, error, กันผลเก่าค้าง, คำอธิบายปุ่มเปลี่ยนโหมด |
 
 ให้รันจากโฟลเดอร์รากของ repository เพราะเทสต์ import `app` จากโฟลเดอร์ปัจจุบัน
 
@@ -207,7 +209,7 @@ python -m venv .venv
 |---|---|
 | clone จาก URL สาธารณะโดยไม่ใช้ credential | สำเร็จ HEAD = `e94ff7a` และมีไฟล์ครบรวม screenshot |
 | `pip install -r requirements.txt` (Flask 3.1.3) | สำเร็จ ไม่มี error |
-| `python -m unittest discover -s tests -v` | **Ran 38 tests — OK** (exit code 0) |
+| `python -m unittest discover -s tests -v` | **Ran 38 tests — OK** ที่ commit `e94ff7a` (exit code 0); หลังเพิ่มคำอธิบายปุ่มเปลี่ยนโหมดเป็น **Ran 39 tests — OK** |
 
 ### ใครเขียนอะไร / AI-written vs student-checked
 
