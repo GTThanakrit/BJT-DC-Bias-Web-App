@@ -1,6 +1,7 @@
-ENG29 2121 - Lab 02 BJT DC Bias Web App
-Recorded: 2026-11-17 17:10:30
+ENG29 2121 - Lab 02 + Lab 03 BJT DC Bias Web App
+Recorded: 2026-11-17
 Command: python -m unittest discover -s tests -v
+Environment: Python 3.10+ / Flask 3.x (Windows PowerShell, .venv)
 
 test_currents_obey_kirchhoff_and_ohms_law (test_dc_bias.ReferenceCaseTest.test_currents_obey_kirchhoff_and_ohms_law) ... ok
 test_operating_point_matches_hand_calculation (test_dc_bias.ReferenceCaseTest.test_operating_point_matches_hand_calculation) ... ok
@@ -15,6 +16,23 @@ test_rejects_non_finite_values (test_dc_bias.ValidationTest.test_rejects_non_fin
 test_rejects_non_positive_beta_and_vcc (test_dc_bias.ValidationTest.test_rejects_non_positive_beta_and_vcc) ... ok
 test_rejects_vbe_not_below_vcc (test_dc_bias.ValidationTest.test_rejects_vbe_not_below_vcc) ... ok
 test_rejects_zero_or_negative_resistance (test_dc_bias.ValidationTest.test_rejects_zero_or_negative_resistance) ... ok
+test_divider_result_unchanged_and_shares_result_keys (test_lab03.DividerAdapterTest.test_divider_result_unchanged_and_shares_result_keys) ... ok
+test_emitter_bias_matches_hand_calculation (test_lab03.EmitterBiasTest.test_emitter_bias_matches_hand_calculation) ... ok
+test_increasing_re_reduces_ic (test_lab03.EmitterBiasTest.test_increasing_re_reduces_ic) ... ok
+test_fixed_bias_matches_hand_calculation (test_lab03.FixedBiasTest.test_fixed_bias_matches_hand_calculation) ... ok
+test_fixed_missing_rb_is_reported (test_lab03.ModeHelpersTest.test_fixed_missing_rb_is_reported) ... ok
+test_known_modes_cover_common_fields (test_lab03.ModeHelpersTest.test_known_modes_cover_common_fields) ... ok
+test_unknown_mode_has_no_fields (test_lab03.ModeHelpersTest.test_unknown_mode_has_no_fields) ... ok
+test_emitter_mode_get_shows_re_but_not_divider_fields (test_web.MultiModeRouteTest.test_emitter_mode_get_shows_re_but_not_divider_fields) ... ok
+test_emitter_mode_post_computes_operating_point (test_web.MultiModeRouteTest.test_emitter_mode_post_computes_operating_point) ... ok
+test_fixed_missing_rb_has_no_result (test_web.MultiModeRouteTest.test_fixed_missing_rb_has_no_result) ... ok
+test_fixed_mode_get_shows_only_its_fields (test_web.MultiModeRouteTest.test_fixed_mode_get_shows_only_its_fields) ... ok
+test_fixed_mode_post_computes_operating_point (test_web.MultiModeRouteTest.test_fixed_mode_post_computes_operating_point) ... ok
+test_fixed_zero_rb_has_no_result (test_web.MultiModeRouteTest.test_fixed_zero_rb_has_no_result) ... ok
+test_invalid_input_does_not_show_stale_result (test_web.MultiModeRouteTest.test_invalid_input_does_not_show_stale_result) ... ok
+test_mode_selector_marks_the_current_mode (test_web.MultiModeRouteTest.test_mode_selector_marks_the_current_mode) ... ok
+test_post_form_carries_hidden_mode (test_web.MultiModeRouteTest.test_post_form_carries_hidden_mode) ... ok
+test_unknown_mode_is_rejected (test_web.MultiModeRouteTest.test_unknown_mode_is_rejected) ... ok
 test_get_returns_form_with_defaults (test_web.RouteTest.test_get_returns_form_with_defaults) ... ok
 test_post_computes_operating_point_server_side (test_web.RouteTest.test_post_computes_operating_point_server_side) ... ok
 test_post_marks_saturated_values_as_untrustworthy (test_web.RouteTest.test_post_marks_saturated_values_as_untrustworthy) ... ok
@@ -26,6 +44,6 @@ test_post_rejects_zero_resistance (test_web.RouteTest.test_post_rejects_zero_res
 test_post_reports_cutoff_region (test_web.RouteTest.test_post_reports_cutoff_region) ... ok
 
 ----------------------------------------------------------------------
-Ran 21 tests in 0.045s
+Ran 38 tests in 0.056s
 
 OK

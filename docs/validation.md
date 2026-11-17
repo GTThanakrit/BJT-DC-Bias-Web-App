@@ -107,16 +107,51 @@ stay identical.
 ## Lab 03 — browser acceptance cases A1–A5
 
 Tolerance: `±0.01 mA` for IC and `±0.02 V` for VCE. Method: OpenCode Browser
-(Playwright MCP is not configured on this machine). Observed values and status
-are filled in after the cases have actually been run.
+(Playwright MCP is not configured on this machine). The expected values below
+were derived by hand above and must be checked and owned by the student before
+submission. Observed values were read from a fresh accessibility snapshot after
+each real form submission against `http://127.0.0.1:5000/`.
 
-| Case | Mode | Inputs (Ω unless noted) | Expected IC | Expected VCE / message | Observed | Status |
-|---|---|---|---|---|---|---|
-| A1 | Divider | R1=100000, R2=22000, RE=1000; VCC=12 V, RC=2200, β=100, VBE=0.7 V | 1.2299 mA | 8.0522 V | — | NOT RUN |
-| A2 | Fixed | RB=1000000; VCC=12 V, RC=2200, β=100, VBE=0.7 V | 1.1300 mA | 9.5140 V | — | NOT RUN |
-| A3 | Emitter | RB=1000000, RE=1000; VCC=12 V, RC=2200, β=100, VBE=0.7 V | 1.02634 mA | 8.70545 V | — | NOT RUN |
-| A4 | Emitter | RB=1000000, RE=2000; VCC=12 V, RC=2200, β=100, VBE=0.7 V | 0.94010 mA | 8.03278 V | — | NOT RUN |
-| A5 | Fixed | RB=0; VCC=12 V, RC=2200, β=100, VBE=0.7 V | n/a (rejected) | `ต้องมากกว่า 0`, no result | — | NOT RUN |
+| Case | Mode | Inputs (Ω unless noted) | Expected IC | Expected VCE / message | Observed (with units) | Method | Status | Evidence |
+|---|---|---|---|---|---|---|---|---|
+| A1 | Divider | R1=100000, R2=22000, RE=1000; VCC=12 V, RC=2200, β=100, VBE=0.7 V | 1.2299 mA | 8.0522 V | `IC 1.230 mA`, `VCE 8.052 V` — all nine rows match the supplied screenshot (VTH 2.164 V, RTH 18.03 kΩ, IB 12.30 µA, IC 1.230 mA, IE 1.242 mA, VB 1.942 V, VE 1.242 V, VC 9.294 V, VCE 8.052 V) | OpenCode Browser | PASS | post-submit snapshot; server HTTP 200 |
+| A2 | Fixed | RB=1000000; VCC=12 V, RC=2200, β=100, VBE=0.7 V | 1.1300 mA | 9.5140 V | `IC 1.130 mA`, `VCE 9.514 V` (region Forward-Active, VE = 0 so VC = VCE) | OpenCode Browser | PASS | post-submit snapshot; server HTTP 200 |
+| A3 | Emitter | RB=1000000, RE=1000; VCC=12 V, RC=2200, β=100, VBE=0.7 V | 1.02634 mA | 8.70545 V | `IC 1.026 mA`, `VCE 8.705 V` | OpenCode Browser | PASS | post-submit snapshot + `screenshots/lab03-emitter.jpeg` |
+| A4 | Emitter | RB=1000000, RE=2000; VCC=12 V, RC=2200, β=100, VBE=0.7 V | 0.94010 mA | 8.03278 V | `IC 0.940 mA`, `VCE 8.033 V` (8.03278 rounds to 3 decimals; within tolerance) | OpenCode Browser | PASS | post-submit snapshot; RE re-run note below |
+| A5 | Fixed | RB=0; VCC=12 V, RC=2200, β=100, VBE=0.7 V | n/a (rejected) | `ต้องมากกว่า 0`, no result | `ตรวจสอบข้อมูลอีกครั้ง` + `RB: ต้องมากกว่า 0`; no `Operating region` badge and no results table | OpenCode Browser | PASS | post-submit snapshot with `RB = 0` |
+
+All five cases pass their criterion: for A1–A4 the observed IC is within
+`±0.01 mA` and VCE within `±0.02 V` of the hand-derived expectation; for A5 the
+form rejects the input and renders no result rather than dividing by zero.
+
+### Browser evidence
+
+![Emitter bias A3 result](screenshots/lab03-emitter.jpeg)
+
+Screenshot of case A3 (Emitter Bias, RB = 1 MΩ, RE = 1 kΩ) computed by the
+running Flask app in OpenCode Browser: `IC 1.026 mA`, `VCE 8.705 V`,
+Operating region **Forward-Active**. The dropdown selector shows the active
+mode and all six emitter input fields are visible.
+
+### How `RE` travels from the form field to `compute_emitter_bias`
+
+The value crosses four layers; no physics is computed in the template.
+
+1. The user types `1000` into the `RE Ω` textbox. The POST form sends
+   `name="re"` together with the hidden `name="mode"` set to `emitter`.
+2. `app.py` `calculate()` reads that mode. `fields_for_mode("emitter")`
+   returns `COMMON_FIELDS + ("rb", "re")`, so `_read_form()` reads exactly
+   `re` (and never `r1`/`r2`, which belong to the divider circuit).
+3. `_read_form()` converts the raw string with `float(raw)` into
+   `values["re"] = 1000.0`; `validate_mode()` then checks it is numeric,
+   positive and within `MAX_RESISTANCE` before any calculation is attempted.
+4. `compute_emitter_bias(values)` reads `re = values["re"]` and uses it in
+   `ib = drive_v / (rb + (beta + 1.0) * re)` and `ve = ie * re`.
+
+Case A4 was re-run in the browser after changing only `RE` from 1000 to 2000 Ω:
+`IC` fell from 1.026 mA to 0.940 mA and `VCE` from 8.705 V to 8.033 V. That
+confirms the field is genuinely consumed by the calculation and is not a value
+copied into the template.
 
 ## Automated tests
 
