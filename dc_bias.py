@@ -1,5 +1,5 @@
-"""DC bias calculations for an NPN BJT common-emitter amplifier
-with voltage-divider bias, using the forward-active approximation.
+"""DC bias calculations for NPN BJT common-emitter amplifiers using the
+forward-active approximation: voltage-divider, fixed, and emitter bias.
 
 This module must stay independent of Flask/HTML: it only knows numbers and
 returns data, never rendered text.
@@ -32,6 +32,28 @@ WARNING_CUTOFF = "cutoff"
 WARNING_NEAR_CUTOFF = "near_cutoff"
 WARNING_NEAR_SATURATION = "near_saturation"
 WARNING_SATURATION = "saturation"
+
+# Circuit modes. The divider is the default so Lab 02 behaviour is preserved.
+MODE_DIVIDER = "divider"
+MODE_FIXED = "fixed"
+MODE_EMITTER = "emitter"
+MODES = (MODE_DIVIDER, MODE_FIXED, MODE_EMITTER)
+
+# Inputs shared by every circuit; mode-specific fields follow these in order.
+COMMON_FIELDS = ("vcc", "rc", "beta", "vbe")
+MODE_FIELDS = {
+    MODE_DIVIDER: COMMON_FIELDS + ("r1", "r2", "re"),
+    MODE_FIXED: COMMON_FIELDS + ("rb",),
+    MODE_EMITTER: COMMON_FIELDS + ("rb", "re"),
+}
+
+# Shared result shape for all three modes. vth_v/rth_kohm are None when the
+# circuit has no Thevenin equivalent (fixed and emitter bias).
+RESULT_KEYS = (
+    "vth_v", "rth_kohm", "ib_ua", "ic_ma", "ie_ma",
+    "vb_v", "ve_v", "vc_v", "vce_v",
+    "region", "warning", "trustworthy",
+)
 
 
 @dataclass(frozen=True)
@@ -67,18 +89,19 @@ _UPPER_BOUNDS = {
     "vcc": MAX_VCC,
     "r1": MAX_RESISTANCE,
     "r2": MAX_RESISTANCE,
+    "rb": MAX_RESISTANCE,
     "rc": MAX_RESISTANCE,
     "re": MAX_RESISTANCE,
     "beta": MAX_BETA,
 }
 
 
-def validate_inputs(values: Mapping[str, float]) -> dict[str, str]:
-    """Return field -> Thai error message for invalid circuit parameters."""
+def _validate_fields(fields, values: Mapping[str, float]) -> dict[str, str]:
+    """Validate exactly the given fields; shared by both validators."""
 
     errors: dict[str, str] = {}
 
-    for key in _FIELDS:
+    for key in fields:
         value = values.get(key)
         if value is None or not math.isfinite(value):
             errors[key] = "ต้องเป็นตัวเลขที่ใช้ได้"
@@ -91,6 +114,28 @@ def validate_inputs(values: Mapping[str, float]) -> dict[str, str]:
         errors["vbe"] = "ต้องน้อยกว่า VCC"
 
     return errors
+
+
+def validate_inputs(values: Mapping[str, float]) -> dict[str, str]:
+    """Return field -> Thai error message for invalid divider parameters."""
+
+    return _validate_fields(_FIELDS, values)
+
+
+def fields_for_mode(mode: str) -> tuple[str, ...] | None:
+    """Return the ordered fields for a mode, or None for an unknown mode."""
+
+    return MODE_FIELDS.get(mode)
+
+
+def validate_mode(mode: str, values: Mapping[str, float]) -> dict[str, str]:
+    """Validate only the inputs the selected circuit actually uses."""
+
+    fields = fields_for_mode(mode)
+    if fields is None:
+        return {"mode": "โหมดวงจรไม่ถูกต้อง"}
+
+    return _validate_fields(fields, values)
 
 
 def compute_dc_bias(params: DcBiasInputs) -> DcBiasResult:
@@ -159,3 +204,128 @@ def compute_dc_bias(params: DcBiasInputs) -> DcBiasResult:
         region=region,
         warning=warning,
     )
+
+
+def result_to_dict(result: DcBiasResult) -> dict:
+    """Convert the untouched Lab 02 dataclass into the shared Lab 03 dict."""
+
+    return {
+        "vth_v": result.vth,
+        "rth_kohm": result.rth / 1000.0,
+        "ib_ua": result.ib * 1e6,
+        "ic_ma": result.ic * 1e3,
+        "ie_ma": result.ie * 1e3,
+        "vb_v": result.vb,
+        "ve_v": result.ve,
+        "vc_v": result.vc,
+        "vce_v": result.vce,
+        "region": result.region,
+        "warning": result.warning,
+        "trustworthy": result.region == REGION_ACTIVE,
+    }
+
+
+def _build_result(vth, rth, ib, ic, ie, vb, ve, vc, vce, drive_v) -> dict:
+    """Apply the shared finite check, region, warning and unit conversion."""
+
+    numeric = [ib, ic, ie, vb, ve, vc, vce]
+    if vth is not None:
+        numeric.append(vth)
+    if rth is not None:
+        numeric.append(rth)
+    if not all(math.isfinite(value) for value in numeric):
+        raise ValueError("ผลลัพธ์ไม่สามารถแทนด้วยจำนวนจริงจำกัดได้")
+
+    if ib <= 0:
+        region, warning = REGION_CUTOFF, WARNING_CUTOFF
+    elif vce <= VCE_SATURATION_MAX:
+        region, warning = REGION_SATURATION, WARNING_SATURATION
+    elif vce < VCE_NEAR_SATURATION:
+        region, warning = REGION_ACTIVE, WARNING_NEAR_SATURATION
+    elif drive_v < VBE_NEAR_CUTOFF_MARGIN:
+        region, warning = REGION_ACTIVE, WARNING_NEAR_CUTOFF
+    else:
+        region, warning = REGION_ACTIVE, None
+
+    return {
+        "vth_v": vth,
+        "rth_kohm": None if rth is None else rth / 1000.0,
+        "ib_ua": ib * 1e6,
+        "ic_ma": ic * 1e3,
+        "ie_ma": ie * 1e3,
+        "vb_v": vb,
+        "ve_v": ve,
+        "vc_v": vc,
+        "vce_v": vce,
+        "region": region,
+        "warning": warning,
+        "trustworthy": region == REGION_ACTIVE,
+    }
+
+
+def compute_divider_bias(values: Mapping[str, float]) -> dict:
+    """Solve the divider circuit by adapting the unchanged Lab 02 function."""
+
+    params = DcBiasInputs(
+        vcc=values["vcc"],
+        r1=values["r1"],
+        r2=values["r2"],
+        rc=values["rc"],
+        re=values["re"],
+        beta=values["beta"],
+        vbe=values["vbe"],
+    )
+    return result_to_dict(compute_dc_bias(params))
+
+
+def compute_fixed_bias(values: Mapping[str, float]) -> dict:
+    """Solve fixed bias: IB = (VCC - VBE) / RB, with VE = 0."""
+
+    vcc = values["vcc"]
+    rb = values["rb"]
+    rc = values["rc"]
+    beta = values["beta"]
+    vbe = values["vbe"]
+
+    drive_v = vcc - vbe
+    if drive_v <= 0:
+        return _build_result(
+            None, None, 0.0, 0.0, 0.0, vbe, 0.0, vcc, vcc, drive_v
+        )
+
+    ib = drive_v / rb
+    ic = beta * ib
+    ie = (beta + 1.0) * ib
+    ve = 0.0
+    vb = ve + vbe
+    vc = vcc - ic * rc
+    vce = vc - ve
+
+    return _build_result(None, None, ib, ic, ie, vb, ve, vc, vce, drive_v)
+
+
+def compute_emitter_bias(values: Mapping[str, float]) -> dict:
+    """Solve emitter bias: IB = (VCC - VBE) / (RB + (beta+1) RE)."""
+
+    vcc = values["vcc"]
+    rb = values["rb"]
+    rc = values["rc"]
+    re = values["re"]
+    beta = values["beta"]
+    vbe = values["vbe"]
+
+    drive_v = vcc - vbe
+    if drive_v <= 0:
+        return _build_result(
+            None, None, 0.0, 0.0, 0.0, vbe, 0.0, vcc, vcc, drive_v
+        )
+
+    ib = drive_v / (rb + (beta + 1.0) * re)
+    ic = beta * ib
+    ie = (beta + 1.0) * ib
+    ve = ie * re
+    vb = ve + vbe
+    vc = vcc - ic * rc
+    vce = vc - ve
+
+    return _build_result(None, None, ib, ic, ie, vb, ve, vc, vce, drive_v)
