@@ -173,4 +173,52 @@ BJT-DC-Bias-Web-App/
 
 ดูตารางผลจริง ค่าคาดหมาย หน่วย วิธีตรวจ และ status ได้ที่
 [`docs/validation.md`](docs/validation.md#lab-03--browser-acceptance-cases-a1a5)
-— ผลจะถูกเติมหลังจากรันจริงใน Browser ครบทั้ง 5 กรณี
+— รันจริงใน OpenCode Browser ครบทั้ง 5 กรณี **PASS ทั้งหมด**
+(A1 Divider, A2 Fixed, A3/A4 Emitter, A5 RB=0 ถูกปฏิเสธ)
+และมี screenshot ของ A3 อยู่ที่
+[`docs/screenshots/lab03-emitter.jpeg`](docs/screenshots/lab03-emitter.jpeg)
+
+## บันทึกการส่งงาน / Submission record
+
+- **Repository:** <https://github.com/GTThanakrit/BJT-DC-Bias-Web-App>
+- **Commit ที่เป็นโค้ด Lab 03 ครบถ้วน (38 tests):**
+  `e94ff7a6e6bdf3b427269c2506d26f7e5c62fc89`
+- **Commit URL:**
+  <https://github.com/GTThanakrit/BJT-DC-Bias-Web-App/commit/e94ff7a6e6bdf3b427269c2506d26f7e5c62fc89>
+- หมายเหตุ: commit ด้านบนคือจุดที่โค้ดและผลตรวจรับครบ ส่วน README นี้ถูกอัปเดตใน
+  commit ถัดไปเพื่อบันทึก URL/SHA และผล clone verify (เป็นเอกสารเท่านั้น โค้ดไม่เปลี่ยน)
+  และ `docs/reflection.md` ต้องเขียนความเห็นส่วนตัวเพิ่มก่อนส่ง
+
+### ตรวจความสามารถในการทำซ้ำจาก anonymous clone
+
+รันจริงเมื่อ 2026-11-17 จากเครื่องเดียวกันโดยไม่ใช้ credential ที่เก็บไว้:
+
+```powershell
+git -c credential.helper= clone https://github.com/GTThanakrit/BJT-DC-Bias-Web-App.git
+cd BJT-DC-Bias-Web-App
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
+
+ผลที่ได้:
+
+| ขั้นตอน | ผล |
+|---|---|
+| clone จาก URL สาธารณะโดยไม่ใช้ credential | สำเร็จ HEAD = `e94ff7a` และมีไฟล์ครบรวม screenshot |
+| `pip install -r requirements.txt` (Flask 3.1.3) | สำเร็จ ไม่มี error |
+| `python -m unittest discover -s tests -v` | **Ran 38 tests — OK** (exit code 0) |
+
+### ใครเขียนอะไร / AI-written vs student-checked
+
+| ส่วน | ผู้เขียน | สิ่งที่ต้องตรวจเองก่อนส่ง |
+|---|---|---|
+| โค้ด Flask, สมการ, เทสต์, เอกสารภาษาไทย และ plan | AI (OpenCode + Superpowers) ช่วยเขียน | อ่านและอธิบายสมการ `IB`, `IC`, `VCE` ให้ได้ด้วยตนเอง |
+| spec, plan, ตัวเลขคาดหมาย A1–A5, ตาราง validation | AI ร่างจากสมการ | **นักศึกษาต้องคำนวณมือและรับรองตัวเลข A1–A5 ว่าเป็นของตนเอง** |
+| ผล browser A1–A5, screenshot, clone verify | ดำเนินการด้วยเครื่องมือจริง | เปิด URL ใน browser ของตนแล้วเทียบผลอีกครั้ง |
+| `docs/reflection.md` ส่วนความเห็น/ปัญหา/สิ่งที่ไม่แน่ใจ | **เว้นไว้ให้เติมเอง** | เขียนด้วยคำของนักศึกษา (ห้ามปล่อย `...`) |
+
+MCP (Model Context Protocol) คือมาตรฐานที่ให้ AI เรียกใช้เครื่องมือภายนอกผ่านข้อความที่มี
+โครงสร้าง: ในงานนี้ OpenCode เป็น MCP client และ Playwright MCP คือ MCP server ที่ให้ AI
+สั่ง browser ได้ แต่เครื่องนี้ไม่ได้ configure ไว้ จึงใช้ OpenCode Browser แทนตามที่ใบงาน
+อนุญาต (ได้เครดิตเท่ากัน) รายละเอียดอยู่ในหัวข้อ **MCP คืออะไร** ด้านบน
