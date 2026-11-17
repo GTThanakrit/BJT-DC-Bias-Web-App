@@ -15,6 +15,17 @@ VALID_FORM = {
     "vbe": "0.7",
 }
 
+FIXED_FORM = {
+    "mode": "fixed",
+    "vcc": "12",
+    "rb": "1000000",
+    "rc": "2200",
+    "beta": "100",
+    "vbe": "0.7",
+}
+
+EMITTER_FORM = dict(FIXED_FORM, mode="emitter", re="1000")
+
 
 class RouteTest(unittest.TestCase):
     def setUp(self):
@@ -98,6 +109,70 @@ class RouteTest(unittest.TestCase):
         self.assertIn("Saturation", body)
         self.assertIn("ห้ามนำไปใช้", body)
         self.assertIn('class="untrusted"', body)
+
+
+class MultiModeRouteTest(unittest.TestCase):
+    def setUp(self):
+        app.config.update(TESTING=True)
+        self.client = app.test_client()
+
+    def post_form(self, form, **overrides):
+        data = dict(form)
+        data.update({k: str(v) for k, v in overrides.items()})
+        return self.client.post("/", data=data)
+
+    def test_fixed_mode_get_shows_only_its_fields(self):
+        body = self.client.get("/?mode=fixed").get_data(as_text=True)
+
+        self.assertIn('name="rb"', body)
+        self.assertNotIn('name="r1"', body)
+
+    def test_emitter_mode_get_shows_re_but_not_divider_fields(self):
+        body = self.client.get("/?mode=emitter").get_data(as_text=True)
+
+        self.assertIn('name="re"', body)
+        self.assertNotIn('name="r1"', body)
+
+    def test_fixed_mode_post_computes_operating_point(self):
+        body = self.post_form(FIXED_FORM).get_data(as_text=True)
+
+        self.assertIn("9.514 V", body)   # VC = VCE for VE = 0
+        self.assertIn("1.130 mA", body)  # IC
+
+    def test_emitter_mode_post_computes_operating_point(self):
+        body = self.post_form(EMITTER_FORM).get_data(as_text=True)
+
+        self.assertIn("8.705 V", body)  # VCE
+
+    def test_unknown_mode_is_rejected(self):
+        body = self.post_form(FIXED_FORM, mode="bogus").get_data(as_text=True)
+
+        self.assertIn("โหมดวงจรไม่ถูกต้อง", body)
+        self.assertNotIn('class="region region-', body)
+
+    def test_fixed_missing_rb_has_no_result(self):
+        form = dict(FIXED_FORM)
+        form.pop("rb")
+
+        body = self.client.post("/", data=form).get_data(as_text=True)
+
+        self.assertIn("กรุณากรอกค่านี้", body)
+        self.assertNotIn('class="region region-', body)
+
+    def test_fixed_zero_rb_has_no_result(self):
+        body = self.post_form(FIXED_FORM, rb="0").get_data(as_text=True)
+
+        self.assertIn("ต้องมากกว่า 0", body)
+        self.assertNotIn('class="region region-', body)
+
+    def test_invalid_input_does_not_show_stale_result(self):
+        first = self.post_form(VALID_FORM).get_data(as_text=True)
+        self.assertIn('class="region region-', first)
+
+        body = self.post_form(VALID_FORM, vcc="abc").get_data(as_text=True)
+
+        self.assertIn("ต้องเป็นตัวเลข", body)
+        self.assertNotIn('class="region region-', body)
 
 
 if __name__ == "__main__":
