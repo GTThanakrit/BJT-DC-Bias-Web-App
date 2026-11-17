@@ -1,20 +1,24 @@
-# BJT DC Bias Simulator — ENG29 2121 Lab 02
+# BJT DC Bias Simulator — ENG29 2121 Lab 02 + Lab 03
 
 เว็บแอป Flask สำหรับคำนวณจุดทำงานกระแสตรง (DC Operating Point) ของทรานซิสเตอร์
-NPN แบบ Common-Emitter ที่ไบอัสด้วยวงจรแบ่งแรงดัน (Voltage-Divider Bias)
-โดยใช้สมมติฐาน Forward-Active Approximation
+NPN แบบ Common-Emitter 3 วงจรที่เลือกได้ในหน้าเดียว:
 
-การคำนวณทั้งหมดเกิดใน Python ฝั่ง Server หน้า HTML ไม่ได้คำนวณเองและไม่ได้ฝัง
-ตัวเลขคำตอบไว้
+- **Voltage-Divider Bias** (Lab 02 — ผลเหมือนเดิมทุกตัวเลข)
+- **Fixed Bias** (RB, RC)
+- **Emitter Bias** (RB, RC, RE)
 
-## ขอบเขตงาน (Week 2)
+ใช้สมมติฐาน Forward-Active Approximation (β และ VBE คงที่) การคำนวณทั้งหมดเกิดใน
+Python ฝั่ง Server หน้า HTML ไม่ได้คำนวณเองและไม่ได้ฝังตัวเลขคำตอบไว้
+
+## ขอบเขตงาน
 
 | อยู่ในขอบเขต | ไม่อยู่ในขอบเขต |
 |---|---|
-| รับค่า VCC, R1, R2, RC, RE, β, VBE | AC small-signal, gain, Bode plot |
-| แสดง VTH, RTH, IB, IC, IE, VB, VE, VC, VCE | Transient / signal generator |
-| ตรวจสอบข้อมูลเข้า + เตือนเมื่อออกนอกย่าน | SPICE solver, load line |
-| Unit tests + Flask HTTP tests | FET, bias topology อื่น |
+| เลือกโหมด Divider / Fixed / Emitter | AC small-signal, gain, Bode plot |
+| รับ VCC, RC, β, VBE ร่วมกัน + ช่องของโหมดนั้น | Transient / signal generator |
+| แสดง IB, IC, IE, VB, VE, VC, VCE (และ VTH, RTH เฉพาะ Divider) | SPICE solver, load line |
+| ตรวจข้อมูลเข้า + เตือนเมื่อ IB ≤ 0 หรือ VCE ≤ 0.2 V | FET, bias topology อื่น |
+| ตรวจ A1–A5 ผ่าน Browser + Unit/HTTP tests | JavaScript, database, deployment |
 
 ## ความต้องการของระบบ
 
@@ -31,7 +35,14 @@ python -m pip install -r requirements.txt
 python -m flask --app app run --debug
 ```
 
-เปิด <http://127.0.0.1:5000/> ใน Browser
+เปิด <http://127.0.0.1:5000/> ใน Browser แล้วเลือกวงจรจาก dropdown **เลือกวงจร**
+แล้วกดปุ่ม **เลือกวงจร** (โหลดฟอร์มใหม่แบบ GET ไม่ใช้ JavaScript)
+
+ตัวอย่าง URL ที่เลือกโหมดได้โดยตรง:
+
+- <http://127.0.0.1:5000/?mode=divider> — วงจรแบ่งแรงดัน (ค่าเริ่มต้น)
+- <http://127.0.0.1:5000/?mode=fixed> — Fixed Bias (ช่อง RB)
+- <http://127.0.0.1:5000/?mode=emitter> — Emitter Bias (ช่อง RB, RE)
 
 > ต้องเปิดผ่าน Flask Server เท่านั้น ไม่ใช่ double-click ไฟล์ `index.html`
 > เพราะตัวเลขต้องถูกคำนวณจาก Python
@@ -42,99 +53,124 @@ python -m flask --app app run --debug
 python -m unittest discover -s tests -v
 ```
 
-มี 2 ชุด: `tests/test_dc_bias.py` (สมการวิศวกรรม 13 เทสต์) และ
-`tests/test_web.py` (HTTP ผ่าน Flask test client 8 เทสต์) รวม **21 เทสต์**
+มี 3 ชุด รวม **38 เทสต์**:
+
+| ไฟล์ | จำนวน | ตรวจอะไร |
+|---|---|---|
+| `tests/test_dc_bias.py` | 13 | สมการ Divider เดิม, Kirchhoff, ขอบเขตย่าน, validation |
+| `tests/test_lab03.py` | 7 | สมการ Fixed/Emitter, RE เปลี่ยนแล้ว IC ลด, adapter ของ Divider, mode helper |
+| `tests/test_web.py` | 18 | HTTP ทุกโหมด, dropdown, error, กันผลเก่าค้าง |
+
 ให้รันจากโฟลเดอร์รากของ repository เพราะเทสต์ import `app` จากโฟลเดอร์ปัจจุบัน
 
-ผลที่รันจริงบันทึกไว้ที่ [`docs/test-log.txt`](docs/test-log.txt) และผลเทียบค่าคำนวณมืออยู่ที่
-[`docs/validation.md`](docs/validation.md)
+ผลที่รันจริงบันทึกไว้ที่ [`docs/test-log.txt`](docs/test-log.txt) ผลเทียบค่าคำนวณมือ
+และตาราง A1–A5 อยู่ที่ [`docs/validation.md`](docs/validation.md)
 
 ## หน่วยของข้อมูลเข้า
 
 - `VCC`, `VBE` หน่วยโวลต์ (V)
-- `R1`, `R2`, `RC`, `RE` หน่วยโอห์ม (Ω) เช่น 100 kΩ ให้กรอก `100000`
+- `R1`, `R2`, `RB`, `RC`, `RE` หน่วยโอห์ม (Ω) เช่น 100 kΩ ให้กรอก `100000`,
+  **1 MΩ ให้กรอก `1000000`**
 - `β` คือ DC current gain (hFE) ไม่มีหน่วย และต้องมากกว่า 0
 
 ช่วงที่รับได้: `VCC ≤ 10 kV`, `R ≤ 1 TΩ`, `β ≤ 1 000 000` และ `0 < VBE < VCC`
+โหมดที่เลือกจะถูกตรวจเฉพาะช่องที่ใช้จริง เช่น Fixed ไม่ต้องกรอก R1/R2/RE
 ค่าที่เกินขอบเขตจะถูกปฏิเสธ ไม่ปล่อยให้แสดงเป็น `inf`/`nan`
 
-## ตัวอย่างอ้างอิง
+## ตัวอย่างอ้างอิง (คำนวณด้วยมือ)
 
-VCC = 12 V, R1 = 100 kΩ, R2 = 22 kΩ, RC = 2.2 kΩ, RE = 1 kΩ, β = 100,
-VBE = 0.70 V
+ร่วมกัน: VCC = 12 V, RC = 2.2 kΩ, β = 100, VBE = 0.70 V
 
-| ปริมาณ | ค่า |
-|---|---|
-| VTH | 2.164 V |
-| RTH | 18.03 kΩ |
-| IB | 12.30 µA |
-| IC | 1.230 mA |
-| IE | 1.242 mA |
-| VB | 1.942 V |
-| VE | 1.242 V |
-| VC | 9.294 V |
-| VCE | 8.052 V |
+| วงจร | อินพุตเพิ่ม | IC | VCE |
+|---|---|---|---|
+| Divider (A1) | R1=100 kΩ, R2=22 kΩ, RE=1 kΩ | 1.2299 mA | 8.0522 V |
+| Fixed (A2) | RB=1 MΩ | 1.1300 mA | 9.5140 V |
+| Emitter (A3) | RB=1 MΩ, RE=1 kΩ | 1.02634 mA | 8.70545 V |
+| Emitter (A4) | RB=1 MΩ, RE=2 kΩ | 0.94010 mA | 8.03278 V |
 
-ย่านการทำงาน: **Forward-Active**
-
-ตัวเลขข้างบนคำนวณด้วยมือจากสมการใน `docs/validation.md` ไม่ได้คัดลอกมาจากผลของโปรแกรม
+ย่านการทำงานทั้ง 4 กรณี: **Forward-Active** ตัวเลขข้างบนคำนวณด้วยมือจากสมการใน
+[`docs/validation.md`](docs/validation.md) ไม่ได้คัดลอกมาจากผลของโปรแกรม
+กรณี A5 (Fixed, RB=0) ต้องได้ error `ต้องมากกว่า 0` และไม่แสดงผลลัพธ์
 
 ## แบบจำลองและข้อจำกัด
 
 สมการที่ใช้ (forward-active, β และ VBE คงที่):
 
 ```
-VTH = VCC · R2 / (R1 + R2)
-RTH = R1 · R2 / (R1 + R2)
-IB  = (VTH − VBE) / (RTH + (β + 1)·RE)
-IC  = β·IB
-IE  = (β + 1)·IB
-VE  = IE·RE
-VB  = VE + VBE
-VC  = VCC − IC·RC
-VCE = VC − VE
+Divider : VTH = VCC·R2/(R1+R2),  RTH = R1·R2/(R1+R2)
+          IB = (VTH − VBE)/(RTH + (β+1)·RE)
+Fixed   : IB = (VCC − VBE)/RB,  VE = 0
+Emitter : IB = (VCC − VBE)/(RB + (β+1)·RE)
+ร่วมกัน  : IC = β·IB,  IE = (β+1)·IB,  VE = IE·RE
+          VB = VE + VBE,  VC = VCC − IC·RC,  VCE = VC − VE
 ```
 
 โปรแกรมจะแจ้งเตือนและไม่รายงานผลว่าเชื่อถือได้ เมื่อสมมติฐาน forward-active ใช้ไม่ได้:
 
-- `VTH ≤ VBE` → **Cutoff** (ไม่มีกระแสฐาน กระแสที่แสดงเป็น 0)
-- `VCE ≤ 0.3 V` → **Saturation** (ตัวเลขมาจากสมการที่อธิบายวงจรจริงไม่ได้แล้ว
-  และถูกขีดฆ่าในหน้าจอ)
+- `IB ≤ 0` → **Cutoff** (ไม่มีกระแสฐาน กระแสที่แสดงเป็น 0)
+- `VCE ≤ 0.3 V` (ครอบคลุมเงื่อนไข `≤ 0.2 V` ที่ใบงานกำหนด) → **Saturation**
+  ตัวเลขมาจากสมการที่อธิบายวงจรจริงไม่ได้แล้วและถูกขีดฆ่าในหน้าจอ
 - `0.3 V < VCE < 1.0 V` → ยังเป็น active แต่เตือนว่า **ใกล้ Saturation**
-- `0 < VTH − VBE < 10 mV` → ยังเป็น active แต่เตือนว่า **ใกล้ Cutoff**
+- drive voltage ใกล้ VBE มาก → ยังเป็น active แต่เตือนว่า **ใกล้ Cutoff**
 
 ผลกระทบที่ยังไม่คิด: Early effect, กระแสรั่ว, การเปลี่ยนแปลงตามอุณหภูมิ,
 ความต้านทานของแหล่งจ่าย และค่าคลาดเคลื่อนของอุปกรณ์
+
+## MCP คืออะไร (ตรวจผ่าน Browser)
+
+- **MCP (Model Context Protocol)** คือมาตรฐานที่ให้ AI (MCP client) เรียกใช้
+  เครื่องมือภายนอก (MCP server) ผ่านข้อความที่มีโครงสร้าง
+- ในงานนี้ **OpenCode เป็น MCP client** และ **Playwright MCP คือ MCP server**
+  ที่เปิดให้ AI สั่ง browser ได้ (เปิดหน้า, เลือก dropdown, กรอกฟอร์ม, กดปุ่ม,
+  อ่าน snapshot, ถ่าย screenshot)
+- **Browser สื่อสารกับ Flask ผ่าน HTTP** ปกติ: browser ส่ง GET/POST ไปที่
+  `127.0.0.1:5000` แล้ว Flask คืนหน้า HTML ที่มีตัวเลขจาก Python
+- เครื่องนี้ไม่ได้ configure Playwright MCP ไว้ จึงใช้ **OpenCode Browser**
+  แทน (เป็น browser tool ในตัวของ harness) — ใบงานให้เครดิตเท่ากัน
+- **เครื่องมือ browser รายงานสิ่งที่เห็นเท่านั้น** ไม่ได้พิสูจน์ว่าสมการถูกต้อง
+  และไม่แทนที่การคำนวณด้วยมือของนักศึกษา ค่าคาดหมาย A1–A5 ต้องตรวจและรับรอง
+  โดยนักศึกษาก่อนใช้ส่งงาน
 
 ## โครงสร้างโปรเจกต์
 
 ```
 BJT-DC-Bias-Web-App/
-├── app.py                  # Flask routes, parse ฟอร์ม, จัดรูปแบบหน่วย
+├── app.py                  # Flask routes, เลือกโหมด, parse ฟอร์ม, จัดรูปแบบหน่วย
 ├── dc_bias.py              # สมการวิศวกรรมล้วน ๆ (ไม่รู้จัก Flask/HTML)
-├── templates/index.html    # ฟอร์ม + ตารางผลลัพธ์ (Jinja)
+├── templates/index.html    # dropdown + ฟอร์ม + ตารางผลลัพธ์ (Jinja)
 ├── static/style.css        # responsive layout
 ├── tests/
 │   ├── test_dc_bias.py
+│   ├── test_lab03.py
 │   └── test_web.py
 ├── docs/
 │   ├── design-note.md
-│   ├── validation.md
+│   ├── validation.md       # คำนวณมือ + ตาราง A1–A5
 │   ├── reflection.md
+│   ├── test-log.txt
+│   ├── superpowers/        # spec + plan
 │   └── screenshots/
 ├── requirements.txt
 ├── AGENTS.md
 └── README.md
 ```
 
-## เกณฑ์ตรวจรับ (A1–A7)
+## เกณฑ์ตรวจรับ
+
+### Lab 02 (A1–A7)
 
 - [x] A1 `GET /` คืนหน้าฟอร์มด้วย HTTP 200
 - [x] A2 `POST /` คำนวณใน Python แล้วแสดงผล
 - [x] A3 ผลตรงกับการคำนวณมือภายใต้แบบจำลองเดียวกัน
 - [x] A4 ข้อมูลผิด (R≤0, β≤0, ไม่ใช่ตัวเลข, ไม่กรอก) แจ้ง error ที่อ่านได้
 - [x] A5 เตือนกรณี Cutoff / Saturation
-- [x] A6 เทสต์อัตโนมัติ 21 ตัว (13 engineering + 8 HTTP)
-- [x] A7 push ขึ้น GitHub แล้วและทำซ้ำได้: clone จาก
+- [x] A6 เทสต์อัตโนมัติ (13 engineering + 8 HTTP เดิม)
+- [x] A7 push ขึ้น GitHub แล้วทำซ้ำได้: clone จาก
       `https://github.com/GTThanakrit/BJT-DC-Bias-Web-App.git`
-      แล้ว `pip install -r requirements.txt` + รันเทสต์ผ่านทั้ง 21 ตัว
+      แล้ว `pip install -r requirements.txt` + รันเทสต์ผ่าน
+
+### Lab 03 (A1–A5)
+
+ดูตารางผลจริง ค่าคาดหมาย หน่วย วิธีตรวจ และ status ได้ที่
+[`docs/validation.md`](docs/validation.md#lab-03--browser-acceptance-cases-a1a5)
+— ผลจะถูกเติมหลังจากรันจริงใน Browser ครบทั้ง 5 กรณี

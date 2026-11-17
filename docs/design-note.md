@@ -1,26 +1,30 @@
-# Design note — BJT DC Bias Web App (Lab 02)
+# Design note — BJT DC Bias Web App (Lab 02, extended in Lab 03)
 
 ## Problem
 
 Students need a working multi-file Flask application that computes the DC
-operating point of an NPN common-emitter amplifier with voltage-divider bias.
+operating point of an NPN common-emitter amplifier. Lab 02 used voltage-divider
+bias; Lab 03 adds fixed bias and single-supply emitter bias to the same app.
 Opening an HTML file directly is not acceptable: the numbers must come from a
-Python calculation triggered by an HTTP request.
+Python calculation triggered by an HTTP request, and the student must verify
+the AI-written equations independently.
 
 ## Goals
 
-- Accept seven circuit parameters and return a complete DC operating point.
+- Accept the parameters of three selectable circuits and return a complete DC
+  operating point in a shared result shape.
 - Keep the engineering math in a module that knows nothing about HTTP or HTML.
 - Show units, the operating region, and an explicit warning when the
   forward-active model stops being valid.
-- Be verifiable: automated tests plus an independent hand calculation.
+- Be verifiable: automated tests plus an independent hand calculation and
+  browser acceptance cases A1–A5.
 - Fit inside one 180-minute lab and leave a structure that can grow in W3–W11.
 
 ## Non-goals
 
 - AC analysis, gain, Bode plots, transient simulation, load line.
 - Writing a SPICE solver or integrating ngspice.
-- Bias topologies other than voltage divider; FET support.
+- Bias topologies other than divider, fixed, and emitter; FET support.
 - User accounts, database, deployment.
 
 ## Anti-goals
@@ -39,9 +43,9 @@ Browser form ──POST──▶ app.py ──▶ dc_bias.py (pure functions)
 
 | File | Responsibility |
 |---|---|
-| `app.py` | Routes, form parsing, error mapping, display formatting |
-| `dc_bias.py` | `validate_inputs`, `compute_dc_bias`, dataclasses, region rules |
-| `templates/index.html` | Form and results markup, no physics |
+| `app.py` | Routes, mode dispatch, form parsing, error mapping, display formatting |
+| `dc_bias.py` | `validate_inputs`, `validate_mode`, `compute_dc_bias`, `compute_divider_bias`, `compute_fixed_bias`, `compute_emitter_bias`, `result_to_dict`, dataclasses, region rules |
+| `templates/index.html` | Mode selector, per-mode form and results markup, no physics |
 | `static/style.css` | Presentation only |
 | `tests/` | Engineering math and HTTP behaviour |
 
@@ -71,6 +75,40 @@ Browser form ──POST──▶ app.py ──▶ dc_bias.py (pure functions)
    physics constraints (`R > 0`, `β > 0`, `VCC > 0`, `0 < VBE < VCC`).
 6. **Thai interface, English engineering terms.** Matches the handout language
    while keeping symbol names (`VCE`, `β`) conventional.
+
+## Lab 03 additions
+
+### Three modes, one result shape
+
+`MODE_DIVIDER` (default), `MODE_FIXED`, and `MODE_EMITTER` are selected with a
+`<select name="mode">`. `MODE_FIELDS` lists the fields each circuit uses;
+`fields_for_mode()` returns that tuple or `None` for an unknown mode.
+`validate_mode()` checks only the selected fields and returns
+`{"mode": "โหมดวงจรไม่ถูกต้อง"}` for an unrecognised mode, so a bad mode can
+never silently fall back to the divider.
+
+Every `compute_*_bias()` function returns the same dict keys:
+`vth_v, rth_kohm, ib_ua, ic_ma, ie_ma, vb_v, ve_v, vc_v, vce_v, region,
+warning, trustworthy`. `vth_v` and `rth_kohm` are `None` for fixed and emitter
+bias because those circuits have no Thevenin base divider, and the template
+omits those two rows. The original `compute_dc_bias()` and `DcBiasResult` are
+untouched: `result_to_dict()` adapts them, which is why all nine Lab 02 divider
+values remain identical.
+
+Equations: fixed bias uses `IB = (VCC − VBE)/RB` with `VE = 0`; emitter bias
+uses `IB = (VCC − VBE)/(RB + (β + 1)·RE)` with `VE = IE·RE`. Both share
+`IC = β·IB`, `IE = (β + 1)·IB`, `VB = VE + VBE`, `VC = VCC − IC·RC`, and
+`VCE = VC − VE`. Internally ohms and amperes; at the boundary volts,
+milliamperes and microamperes.
+
+### Why the mode change needs no JavaScript
+
+Changing mode submits a small `GET /?mode=...` form. Flask rebuilds
+`FIELD_SPECS` for that mode and renders only its inputs; the POST form carries
+the mode in a hidden field. A full page reload is sufficient for a form with
+four to seven text inputs, keeps the project's "no JavaScript required" stack,
+avoids stale values from a previously selected circuit, and leaves every value
+readable in an accessibility snapshot for browser verification.
 
 ## Left to the builder
 
