@@ -46,6 +46,9 @@ python -m unittest discover -s tests -v
 `tests/test_web.py` (HTTP ผ่าน Flask test client 8 เทสต์) รวม **21 เทสต์**
 ให้รันจากโฟลเดอร์รากของ repository เพราะเทสต์ import `app` จากโฟลเดอร์ปัจจุบัน
 
+ผลที่รันจริงบันทึกไว้ที่ [`docs/test-log.txt`](docs/test-log.txt) และผลเทียบค่าคำนวณมืออยู่ที่
+[`docs/validation.md`](docs/validation.md)
+
 ## หน่วยของข้อมูลเข้า
 
 - `VCC`, `VBE` หน่วยโวลต์ (V)

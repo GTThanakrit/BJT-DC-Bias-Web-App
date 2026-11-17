@@ -1,0 +1,31 @@
+ENG29 2121 - Lab 02 BJT DC Bias Web App
+Recorded: 2026-11-17 17:10:30
+Command: python -m unittest discover -s tests -v
+
+test_currents_obey_kirchhoff_and_ohms_law (test_dc_bias.ReferenceCaseTest.test_currents_obey_kirchhoff_and_ohms_law) ... ok
+test_operating_point_matches_hand_calculation (test_dc_bias.ReferenceCaseTest.test_operating_point_matches_hand_calculation) ... ok
+test_second_circuit_matches_hand_calculation (test_dc_bias.ReferenceCaseTest.test_second_circuit_matches_hand_calculation) ... ok
+test_barely_above_cutoff_warns_even_though_region_is_active (test_dc_bias.RegionWarningTest.test_barely_above_cutoff_warns_even_though_region_is_active) ... ok
+test_cutoff_when_thevenin_voltage_below_vbe (test_dc_bias.RegionWarningTest.test_cutoff_when_thevenin_voltage_below_vbe) ... ok
+test_near_saturation_keeps_active_region_but_warns (test_dc_bias.RegionWarningTest.test_near_saturation_keeps_active_region_but_warns) ... ok
+test_saturation_when_vce_falls_below_model_limit (test_dc_bias.RegionWarningTest.test_saturation_when_vce_falls_below_model_limit) ... ok
+test_vth_equal_to_vbe_is_cutoff (test_dc_bias.RegionWarningTest.test_vth_equal_to_vbe_is_cutoff) ... ok
+test_accepts_reference_circuit (test_dc_bias.ValidationTest.test_accepts_reference_circuit) ... ok
+test_rejects_non_finite_values (test_dc_bias.ValidationTest.test_rejects_non_finite_values) ... ok
+test_rejects_non_positive_beta_and_vcc (test_dc_bias.ValidationTest.test_rejects_non_positive_beta_and_vcc) ... ok
+test_rejects_vbe_not_below_vcc (test_dc_bias.ValidationTest.test_rejects_vbe_not_below_vcc) ... ok
+test_rejects_zero_or_negative_resistance (test_dc_bias.ValidationTest.test_rejects_zero_or_negative_resistance) ... ok
+test_get_returns_form_with_defaults (test_web.RouteTest.test_get_returns_form_with_defaults) ... ok
+test_post_computes_operating_point_server_side (test_web.RouteTest.test_post_computes_operating_point_server_side) ... ok
+test_post_marks_saturated_values_as_untrustworthy (test_web.RouteTest.test_post_marks_saturated_values_as_untrustworthy) ... ok
+test_post_recomputes_for_a_different_circuit (test_web.RouteTest.test_post_recomputes_for_a_different_circuit)
+A hard-coded template would keep showing the reference numbers. ... ok
+test_post_rejects_missing_field (test_web.RouteTest.test_post_rejects_missing_field) ... ok
+test_post_rejects_non_numeric_input (test_web.RouteTest.test_post_rejects_non_numeric_input) ... ok
+test_post_rejects_zero_resistance (test_web.RouteTest.test_post_rejects_zero_resistance) ... ok
+test_post_reports_cutoff_region (test_web.RouteTest.test_post_reports_cutoff_region) ... ok
+
+----------------------------------------------------------------------
+Ran 21 tests in 0.045s
+
+OK
