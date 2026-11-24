@@ -1,4 +1,4 @@
-# BJT DC Bias Simulator — ENG29 2121 Lab 02 + Lab 03
+# BJT DC Bias + CE Amplifier Simulator — ENG29 2121 Lab 02, Lab 03 + Lab 04
 
 เว็บแอป Flask สำหรับคำนวณจุดทำงานกระแสตรง (DC Operating Point) ของทรานซิสเตอร์
 NPN แบบ Common-Emitter 3 วงจรที่เลือกได้ในหน้าเดียว:
@@ -7,18 +7,24 @@ NPN แบบ Common-Emitter 3 วงจรที่เลือกได้ใ�
 - **Fixed Bias** (RB, RC)
 - **Emitter Bias** (RB, RC, RE)
 
-ใช้สมมติฐาน Forward-Active Approximation (β และ VBE คงที่) การคำนวณทั้งหมดเกิดใน
-Python ฝั่ง Server หน้า HTML ไม่ได้คำนวณเองและไม่ได้ฝังตัวเลขคำตอบไว้
+Lab 04 เพิ่มหน้า CE Amplifier Simulator ที่รัน **ngspice จริง** (`.op`, `.ac`, `.tran`)
+บนวงจร voltage-divider ค่าคงที่ แล้วแสดงกราฟและค่าที่อ่านจาก log ที่ engine เขียนจริง
+เท่านั้น (ไม่ mock ไม่ hard-code ผล) ผล SPICE กับผลสมการ (Lab 03) อยู่คนละ panel เสมอ
+
+ใช้สมมติฐาน Forward-Active Approximation (β และ VBE คงที่) สำหรับส่วนสมการ การคำนวณ
+ทั้งหมดเกิดใน Python ฝั่ง Server หน้า HTML ไม่ได้คำนวณเองและไม่ได้ฝังตัวเลขคำตอบไว้
 
 ## ขอบเขตงาน
 
 | อยู่ในขอบเขต | ไม่อยู่ในขอบเขต |
 |---|---|
-| เลือกโหมด Divider / Fixed / Emitter | AC small-signal, gain, Bode plot |
-| รับ VCC, RC, β, VBE ร่วมกัน + ช่องของโหมดนั้น | Transient / signal generator |
-| แสดง IB, IC, IE, VB, VE, VC, VCE (และ VTH, RTH เฉพาะ Divider) | SPICE solver, load line |
-| ตรวจข้อมูลเข้า + เตือนเมื่อ IB ≤ 0 หรือ VCE ≤ 0.2 V | FET, bias topology อื่น |
-| ตรวจ A1–A5 ผ่าน Browser + Unit/HTTP tests | JavaScript, database, deployment |
+| เลือกโหมด Divider / Fixed / Emitter (Lab 02/03) | editor วงจร / wiring อิสระ |
+| รับ VCC, RC, β, VBE ร่วมกัน + ช่องของโหมดนั้น | FET, bias topology อื่น |
+| แสดง IB, IC, IE, VB, VE, VC, VCE (และ VTH, RTH เฉพาะ Divider) | custom solver แทน ngspice |
+| ตรวจข้อมูลเข้า + เตือนเมื่อ IB ≤ 0 หรือ VCE ≤ 0.2 V | JavaScript, database, deployment |
+| Lab 04: รัน ngspice `.op` / `.ac` / `.tran` บน CE divider ค่าคงที่ | ผล SPICE ที่แต่งขึ้น / hard-code |
+| Lab 04: กราฟ Bode + waveform จาก log จริง แยกผล analytical | plotting package ภายนอก |
+| ตรวจ A1–A5 และ B1–B8 ผ่าน Browser + Unit/HTTP tests | อ้างผลจากโมเดลที่ยังไม่ตรวจโดยอาจารย์ |
 
 ## ความต้องการของระบบ
 
@@ -73,6 +79,10 @@ python -m flask --app app run --debug
 - <http://127.0.0.1:5000/?mode=fixed> — Fixed Bias (ช่อง RB)
 - <http://127.0.0.1:5000/?mode=emitter> — Emitter Bias (ช่อง RB, RE)
 
+Lab 04 เปิด <http://127.0.0.1:5000/simulator> เลือก Analysis (DC / AC / TRAN) แล้วกด
+**Run ngspice** ผลที่ได้อ่านจาก log ที่ ngspice เขียนในแต่ละรัน และจะแสดง engine status,
+provenance และป้าย `UNVERIFIED` ควบคู่กับตาราง Analytical reference ที่แยกต่างหาก
+
 > ต้องเปิดผ่าน Flask Server เท่านั้น ไม่ใช่ double-click ไฟล์ `index.html`
 > เพราะตัวเลขต้องถูกคำนวณจาก Python
 
@@ -82,13 +92,17 @@ python -m flask --app app run --debug
 python -m unittest discover -s tests -v
 ```
 
-มี 3 ชุด รวม **39 เทสต์**:
+มี 7 ชุด รวม **65 เทสต์** (39 เทสต์เดิมของ Lab 02/03 ไม่เปลี่ยน + 26 เทสต์ใหม่ Lab 04):
 
 | ไฟล์ | จำนวน | ตรวจอะไร |
 |---|---|---|
 | `tests/test_dc_bias.py` | 13 | สมการ Divider เดิม, Kirchhoff, ขอบเขตย่าน, validation |
 | `tests/test_lab03.py` | 7 | สมการ Fixed/Emitter, RE เปลี่ยนแล้ว IC ลด, adapter ของ Divider, mode helper |
 | `tests/test_web.py` | 19 | HTTP ทุกโหมด, dropdown, error, กันผลเก่าค้าง, คำอธิบายปุ่มเปลี่ยนโหมด |
+| `tests/test_plots.py` | 2 | SVG plot สร้างจากข้อมูลที่ส่งเข้า ไม่ฝังตัวเลข |
+| `tests/test_spice_engine.py` | 18 | validation, netlist, runner, parser ด้วย log จริงของ ngspice 47 |
+| `tests/test_toolchain.py` | 1 | ไฟล์โมเดล `.mod` มีป้าย `UNVERIFIED` |
+| `tests/test_web_simulator.py` | 5 | `/simulator`, `/simulate`, error/provenance, Lab 03 ไม่เปลี่ยน |
 
 ให้รันจากโฟลเดอร์รากของ repository เพราะเทสต์ import `app` จากโฟลเดอร์ปัจจุบัน
 
@@ -164,19 +178,27 @@ Emitter : IB = (VCC − VBE)/(RB + (β+1)·RE)
 
 ```
 BJT-DC-Bias-Web-App/
-├── app.py                  # Flask routes, เลือกโหมด, parse ฟอร์ม, จัดรูปแบบหน่วย
+├── app.py                  # Flask routes, parse ฟอร์ม, error mapping, จัดรูปแบบหน่วย
 ├── dc_bias.py              # สมการวิศวกรรมล้วน ๆ (ไม่รู้จัก Flask/HTML)
-├── templates/index.html    # dropdown + ฟอร์ม + ตารางผลลัพธ์ (Jinja)
+├── spice_engine.py         # Lab 04: validation/netlist/run ngspice/parse log จริง
+├── plots.py                # Lab 04: render SVG จากข้อมูลที่ส่งเข้า (ไม่รู้จัก Flask)
+├── spice_models/
+│   └── ce_generic.mod      # generic NPN teaching model · UNVERIFIED
+├── templates/
+│   ├── index.html          # Lab 03 dropdown + ฟอร์ม + ตารางผลลัพธ์ (Jinja)
+│   └── simulator.html      # Lab 04 ฟอร์ม + ผล SPICE/analytical แยก panel
 ├── static/style.css        # responsive layout
 ├── tests/
-│   ├── test_dc_bias.py
-│   ├── test_lab03.py
-│   └── test_web.py
+│   ├── test_dc_bias.py, test_lab03.py, test_web.py
+│   ├── test_plots.py, test_spice_engine.py, test_toolchain.py
+│   ├── test_web_simulator.py
+│   └── fixtures/           # ngspice_*_real.log (parser fixtures จาก engine จริง)
 ├── docs/
 │   ├── design-note.md
-│   ├── validation.md       # คำนวณมือ + ตาราง A1–A5
-│   ├── reflection.md
-│   ├── test-log.txt
+│   ├── validation.md       # A1–A5 + B1–B8 + design audit
+│   ├── reflection.md       # เว้นให้นักศึกษาเขียนเอง
+│   ├── test-log.txt        # ผลรัน 65 เทสต์ (UTF-8)
+│   ├── captures/           # before/after + หลักฐาน B6/B8
 │   ├── superpowers/        # spec + plan
 │   └── screenshots/
 ├── requirements.txt
@@ -207,6 +229,22 @@ BJT-DC-Bias-Web-App/
 และมี screenshot ของ A3 อยู่ที่
 [`docs/screenshots/lab03-emitter.jpeg`](docs/screenshots/lab03-emitter.jpeg)
 
+### Lab 04 (B1–B8)
+
+ดูตารางผลจริง ค่าที่สังเกต วิธีตรวจ และ status ได้ที่
+[`docs/validation.md`](docs/validation.md#lab-04--browser-acceptance-cases-b1b8)
+— รันจริงใน OpenCode Browser กับ ngspice 47: **B1–B7 PASS**,
+**B8 PASS โดยมีข้อจำกัด** (ตรวจ mobile แบบ detector/CSS มากกว่าภาพจริง ดูหมายเหตุในตาราง)
+
+- B1 Lab 03 ไม่ regress (IC 1.230 mA, VCE 8.052 V, Forward-Active)
+- B2 DC SPICE จริง (IC 1.278 mA, VCE 7.900 V) แยกจาก analytical
+- B3 เปลี่ยน RE 1000 → 2000 Ω แล้ว IC ตก 1.278 → 0.696 mA
+- B4 AC 141 points, แกน `Frequency (Hz)` / `Gain (dB)` / `Phase (deg)`
+- B5 TRAN 10 mV/1 kHz → 508 samples, inverted
+- B6 เปลี่ยนเป็น 50 mV/2 kHz → Vout peak 5×, inverted
+- B7 RE = 0 ถูกปฏิเสธ ไม่มี plot หรือ engine badge
+- B8 responsive/mode switching + Impeccable audit (UI polish อย่างเดียว)
+
 ## บันทึกการส่งงาน / Submission record
 
 - **Repository:** <https://github.com/GTThanakrit/BJT-DC-Bias-Web-App>
@@ -217,6 +255,22 @@ BJT-DC-Bias-Web-App/
 - หมายเหตุ: commit ด้านบนคือจุดที่โค้ดและผลตรวจรับครบ ส่วน README นี้ถูกอัปเดตใน
   commit ถัดไปเพื่อบันทึก URL/SHA และผล clone verify (เป็นเอกสารเท่านั้น โค้ดไม่เปลี่ยน)
   และ `docs/reflection.md` ต้องเขียนความเห็นส่วนตัวเพิ่มก่อนส่ง
+
+### Lab 04 — final submission record
+
+- **Repository:** <https://github.com/GTThanakrit/BJT-DC-Bias-Web-App>
+- **Branch pushed:** `main` (working tree เป็น detached HEAD ที่ harness จัดการ)
+- **Engine:** `ngspice-47` (Console `ngspice_con`); ตรวจด้วย `ngspice_con -v`
+- **Model:** `spice_models/ce_generic.mod` → `CE_UNVERIFIED`,
+  `NPN(BF=100 VAF=100 IS=1E-14)` — **ยังไม่ตรวจโดยอาจารย์**
+  (ป้าย `UNVERIFIED` แสดงในหน้าเว็บทุกครั้งที่ใช้)
+- **Versions ที่ใช้รันจริง:** Python 3.15.2, Flask 3.1.3, ngspice 47
+- **Full suite:** 65 tests — `OK` (ดู `docs/test-log.txt`)
+- **Submission commit SHA:** _จะบันทึกหลัง `git push` ตาม plan Task 9 Step 3_
+- **Commit URL:** _จะบันทึกหลัง push_
+- หมายเหตุ: SHA ด้านบนเป็น commit ที่รวมเอกสาร Lab 04 ฉบับสุดท้าย ถ้ามีการแก้เอกสาร
+  เพื่อบันทึก SHA เองจะเป็นอีก commit หนึ่ง ซึ่งเป็น HEAD สุดท้ายที่ push ขึ้น `main`
+- `docs/reflection.md` ยังเว้นให้นักศึกษาเขียนเองตามเดิม
 
 ### ตรวจความสามารถในการทำซ้ำจาก anonymous clone
 
@@ -245,6 +299,9 @@ python -m venv .venv
 | โค้ด Flask, สมการ, เทสต์, เอกสารภาษาไทย และ plan | AI (OpenCode + Superpowers) ช่วยเขียน | อ่านและอธิบายสมการ `IB`, `IC`, `VCE` ให้ได้ด้วยตนเอง |
 | spec, plan, ตัวเลขคาดหมาย A1–A5, ตาราง validation | AI ร่างจากสมการ | **นักศึกษาต้องคำนวณมือและรับรองตัวเลข A1–A5 ว่าเป็นของตนเอง** |
 | ผล browser A1–A5, screenshot, clone verify | ดำเนินการด้วยเครื่องมือจริง | เปิด URL ใน browser ของตนแล้วเทียบผลอีกครั้ง |
+| `spice_engine.py`, `plots.py`, netlist, หน้า `/simulator` | AI เขียนตาม spec ที่อนุมัติ | อธิบายได้ว่า netlist สร้างอย่างไร ค่าไหนอ่านจาก log ngspice จริง |
+| โมเดล `ce_generic.mod` (`CE_UNVERIFIED`) | AI ร่างเพื่อทดสอบ adapter | **ต้องขอโมเดลที่อาจารย์ตรวจแล้วแทนที่ก่อนอ้างผล SPICE ว่าถูกต้อง** |
+| ผล browser B1–B8, design audit, submission SHA | ดำเนินการด้วยเครื่องมือจริง (ngspice 47 + OpenCode Browser + Impeccable) | รัน `/simulator` ใน browser ของตน เทียบ B1–B8 และตรวจว่า engine status ไม่ใช่ `ENGINE NOT AVAILABLE` |
 | `docs/reflection.md` ส่วนความเห็น/ปัญหา/สิ่งที่ไม่แน่ใจ | **เว้นไว้ให้เติมเอง** | เขียนด้วยคำของนักศึกษา (ห้ามปล่อย `...`) |
 
 MCP (Model Context Protocol) คือมาตรฐานที่ให้ AI เรียกใช้เครื่องมือภายนอกผ่านข้อความที่มี

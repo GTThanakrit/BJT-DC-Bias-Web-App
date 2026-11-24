@@ -169,9 +169,12 @@ copied into the template.
 ## Automated tests
 
 ```
-python -m unittest discover -s tests -v
-Ran 39 tests — OK
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+Ran 65 tests in 0.071s — OK
 ```
+
+The original 39 Lab 02/03 tests are unchanged; 26 Lab 04 tests were added. The
+full captured output is in [`test-log.txt`](test-log.txt) (UTF-8, no BOM).
 
 - `tests/test_dc_bias.py` — 13 tests: two hand-calculated operating points,
   Kirchhoff/Ohm consistency, cutoff, cutoff boundary (`VTH == VBE`),
@@ -188,6 +191,17 @@ Ran 39 tests — OK
   stale result after an error, and the hint explaining that the mode-change
   button must be pressed).
 
+- `tests/test_plots.py` — 2 tests: SVG output is generated from the supplied
+   data and contains no hard-coded result values.
+- `tests/test_spice_engine.py` — 18 tests: input validation, netlist content,
+   engine resolution/runner behaviour, and parsers checked against the real
+   ngspice 47 logs kept in `tests/fixtures/`.
+- `tests/test_toolchain.py` — 1 test: the bundled `.mod` file is present and
+   labelled `UNVERIFIED`.
+- `tests/test_web_simulator.py` — 5 tests: `/simulator` GET, `/simulate` POST
+   success with provenance/SVG, parsing errors, engine-error status without a
+   plot, and confirmation that the Lab 03 `/` route is unchanged.
+
 ![Forward-active result](screenshots/forward-active.jpeg)
 
 Screenshot of the reference case computed by the running Flask app.
@@ -199,7 +213,7 @@ Screenshot of the reference case computed by the running Flask app.
 `spice_models/ce_generic.mod` (`NPN(BF=100 VAF=100 IS=1E-14)`) — a generic
 teaching model, explicitly marked UNVERIFIED in the UI and **not** checked by
 an instructor. **Method:** OpenCode Browser against the live Flask app at
-`http://127.0.0.1:5000/`; Playwright MCP is not configured on this machine.
+`http://127.0.0.1:5000/simulator`; Playwright MCP is not configured on this machine.
 Values were read from a fresh accessibility snapshot / DOM text after each
 real POST, not from unit-test fixtures. Numerical smoke runs were also made
 through `spice_engine.simulate()` using the real binary.
@@ -296,3 +310,27 @@ The model assumes constant β and VBE and ignores Early effect, leakage,
 temperature and source resistance. Results in cutoff or saturation are not
 physical predictions of this model, and the UI says so rather than presenting
 them as valid.
+
+## Lab 04 — final verification and submission record
+
+- **Environment verified:** Python 3.15.2, Flask 3.1.3, ngspice 47
+  (`** ngspice-47 : Circuit level simulation program`).
+- **Model source:** `spice_models/ce_generic.mod`, name `CE_UNVERIFIED`,
+  `NPN(BF=100 VAF=100 IS=1E-14)`; generic teaching model, not instructor-verified.
+  Replacing it with a verified model is a student-owned step before any claim
+  of engineering accuracy.
+- **Local URLs:** <http://127.0.0.1:5000/> (unchanged Lab 03 app) and
+  <http://127.0.0.1:5000/simulator> (Lab 04).
+- **Tests:** full suite re-run fresh before commit — `Ran 65 tests`, `OK`,
+  exit code 0; log saved as UTF-8 in `docs/test-log.txt`.
+  Original 39 tests unchanged; 26 Lab 04 tests added.
+- **Browser cases:** B1–B7 PASS; B8 PASS with the mobile caveat recorded in the
+  table above (detector/CSS evidence rather than a visual mobile plot capture).
+  Student must re-check every case independently before submission.
+- **Repository audit:** no `.venv/`, `.env`, credentials or large raw run files
+  staged; `.opencode/` tool artifacts and the plan/spec files are intentionally
+  left unstaged.
+- **Submission commit SHA:** _to be recorded after `git push` (plan Task 9 Step 3)_.
+- **Commit URL:** _to be recorded after push_.
+- `docs/reflection.md` placeholders are intentionally untouched; the student
+  must write the reflection in their own words before submission.

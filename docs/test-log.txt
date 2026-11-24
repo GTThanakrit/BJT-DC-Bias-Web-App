@@ -1,8 +1,3 @@
-ENG29 2121 - Lab 02 + Lab 03 BJT DC Bias Web App
-Recorded: 2026-11-17
-Command: python -m unittest discover -s tests -v
-Environment: Python 3.10+ / Flask 3.x (Windows PowerShell, .venv)
-
 test_currents_obey_kirchhoff_and_ohms_law (test_dc_bias.ReferenceCaseTest.test_currents_obey_kirchhoff_and_ohms_law) ... ok
 test_operating_point_matches_hand_calculation (test_dc_bias.ReferenceCaseTest.test_operating_point_matches_hand_calculation) ... ok
 test_second_circuit_matches_hand_calculation (test_dc_bias.ReferenceCaseTest.test_second_circuit_matches_hand_calculation) ... ok
@@ -23,6 +18,27 @@ test_fixed_bias_matches_hand_calculation (test_lab03.FixedBiasTest.test_fixed_bi
 test_fixed_missing_rb_is_reported (test_lab03.ModeHelpersTest.test_fixed_missing_rb_is_reported) ... ok
 test_known_modes_cover_common_fields (test_lab03.ModeHelpersTest.test_known_modes_cover_common_fields) ... ok
 test_unknown_mode_has_no_fields (test_lab03.ModeHelpersTest.test_unknown_mode_has_no_fields) ... ok
+test_bode_svg_has_units_and_changes_with_data (test_plots.BodeSvgTest.test_bode_svg_has_units_and_changes_with_data) ... ok
+test_waveform_svg_has_units_traces_and_changes_with_amplitude (test_plots.WaveformSvgTest.test_waveform_svg_has_units_traces_and_changes_with_amplitude) ... ok
+test_falls_back_to_localappdata_console_binary (test_spice_engine.EngineExecutableTest.test_falls_back_to_localappdata_console_binary) ... ok
+test_build_netlist_ac_uses_vin_reference (test_spice_engine.NetlistBuilderTest.test_build_netlist_ac_uses_vin_reference) ... ok
+test_build_netlist_dc_contains_op_and_model (test_spice_engine.NetlistBuilderTest.test_build_netlist_dc_contains_op_and_model) ... ok
+test_build_netlist_tran_encodes_amplitude_and_frequency (test_spice_engine.NetlistBuilderTest.test_build_netlist_tran_encodes_amplitude_and_frequency) ... ok
+test_parse_ac_computes_gain_relative_to_vin (test_spice_engine.ParserTest.test_parse_ac_computes_gain_relative_to_vin) ... ok
+test_parse_ac_real_log_fixture (test_spice_engine.ParserTest.test_parse_ac_real_log_fixture) ... ok
+test_parse_ac_reports_cutoff_not_determined_when_no_crossing (test_spice_engine.ParserTest.test_parse_ac_reports_cutoff_not_determined_when_no_crossing) ... ok
+test_parse_op_reads_columns_and_units (test_spice_engine.ParserTest.test_parse_op_reads_columns_and_units) ... ok
+test_parse_op_real_log_fixture (test_spice_engine.ParserTest.test_parse_op_real_log_fixture) ... ok
+test_parse_tran_detects_inversion (test_spice_engine.ParserTest.test_parse_tran_detects_inversion) ... ok
+test_parse_tran_real_log_fixture (test_spice_engine.ParserTest.test_parse_tran_real_log_fixture) ... ok
+test_simulate_returns_parse_failed_on_bad_columns (test_spice_engine.ParserTest.test_simulate_returns_parse_failed_on_bad_columns) ... ok
+test_run_rejects_empty_log (test_spice_engine.RunnerTest.test_run_rejects_empty_log) ... ok
+test_run_rejects_nonzero_exit (test_spice_engine.RunnerTest.test_run_rejects_nonzero_exit) ... ok
+test_run_returns_engine_unavailable_when_binary_missing (test_spice_engine.RunnerTest.test_run_returns_engine_unavailable_when_binary_missing) ... ok
+test_run_uses_argument_list_without_shell (test_spice_engine.RunnerTest.test_run_uses_argument_list_without_shell) ... ok
+test_validate_rejects_bad_frequency (test_spice_engine.ValidationTest.test_validate_rejects_bad_frequency) ... ok
+test_validate_rejects_zero_re (test_spice_engine.ValidationTest.test_validate_rejects_zero_re) ... ok
+test_generic_model_file_is_labelled_unverified (test_toolchain.ToolchainTest.test_generic_model_file_is_labelled_unverified) ... ok
 test_emitter_mode_get_shows_re_but_not_divider_fields (test_web.MultiModeRouteTest.test_emitter_mode_get_shows_re_but_not_divider_fields) ... ok
 test_emitter_mode_post_computes_operating_point (test_web.MultiModeRouteTest.test_emitter_mode_post_computes_operating_point) ... ok
 test_fixed_missing_rb_has_no_result (test_web.MultiModeRouteTest.test_fixed_missing_rb_has_no_result) ... ok
@@ -43,8 +59,13 @@ test_post_rejects_missing_field (test_web.RouteTest.test_post_rejects_missing_fi
 test_post_rejects_non_numeric_input (test_web.RouteTest.test_post_rejects_non_numeric_input) ... ok
 test_post_rejects_zero_resistance (test_web.RouteTest.test_post_rejects_zero_resistance) ... ok
 test_post_reports_cutoff_region (test_web.RouteTest.test_post_reports_cutoff_region) ... ok
+test_get_simulator_shows_defaults_and_no_results (test_web_simulator.SimulatorRouteTest.test_get_simulator_shows_defaults_and_no_results) ... ok
+test_index_still_renders_lab03_with_simulator_link (test_web_simulator.SimulatorRouteTest.test_index_still_renders_lab03_with_simulator_link) ... ok
+test_post_simulate_engine_error_shows_status_and_no_plot (test_web_simulator.SimulatorRouteTest.test_post_simulate_engine_error_shows_status_and_no_plot) ... ok
+test_post_simulate_invalid_re_shows_error_and_no_plot (test_web_simulator.SimulatorRouteTest.test_post_simulate_invalid_re_shows_error_and_no_plot) ... ok
+test_post_simulate_success_shows_provenance_and_svg (test_web_simulator.SimulatorRouteTest.test_post_simulate_success_shows_provenance_and_svg) ... ok
 
 ----------------------------------------------------------------------
-Ran 39 tests in 0.053s
+Ran 65 tests in 0.084s
 
 OK
