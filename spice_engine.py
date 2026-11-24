@@ -8,6 +8,9 @@ from __future__ import annotations
 
 import math
 import re
+import shutil
+import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -100,6 +103,87 @@ def validate_sim_params(values: dict[str, str]) -> dict[str, str]:
         errors["model_name"] = "ใช้ได้เฉพาะตัวอักษร ตัวเลข และ _"
 
     return errors
+
+
+@dataclass
+class RunResult:
+    """Outcome of one external ngspice batch run."""
+
+    ok: bool
+    log_text: str
+    raw_path: Path | None
+    engine_version: str
+    error: str
+
+
+def _engine_executable() -> str:
+    """Prefer the Windows console binary; keep ngspice on other platforms."""
+
+    resolved = shutil.which("ngspice_con") or shutil.which("ngspice")
+    if resolved:
+        return resolved
+    return "ngspice_con" if sys.platform.startswith("win") else "ngspice"
+
+
+def get_engine_version(timeout: int = 5) -> str:
+    """Return the ngspice version banner or 'not available'."""
+
+    try:
+        completed = subprocess.run(
+            [_engine_executable(), "-v"],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return "not available"
+
+    for line in (completed.stdout + "\n" + completed.stderr).splitlines():
+        if "ngspice-" in line.lower():
+            return line.strip()
+    return "not available"
+
+
+def run_ngspice(
+    mode: str, netlist: Path, workdir: Path, timeout: int = 30
+) -> RunResult:
+    """Run one netlist in batch mode and classify the outcome."""
+
+    version = get_engine_version()
+    command = [
+        _engine_executable(),
+        "-b",
+        "-o",
+        "run.log",
+        "-r",
+        "run.raw",
+        netlist.name,
+    ]
+
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=workdir,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except FileNotFoundError:
+        return RunResult(False, "", None, version, "ENGINE NOT AVAILABLE")
+    except subprocess.TimeoutExpired:
+        return RunResult(False, "", None, version, f"TIMEOUT after {timeout} s")
+
+    log_path = workdir / "run.log"
+    log_text = log_path.read_text(encoding="utf-8") if log_path.exists() else completed.stdout
+    raw_path = workdir / "run.raw" if (workdir / "run.raw").exists() else None
+
+    if completed.returncode != 0 or "Fatal error" in log_text:
+        return RunResult(False, log_text, raw_path, version, "RUN FAILED")
+    if not log_text.strip():
+        return RunResult(False, log_text, raw_path, version, "EMPTY OUTPUT")
+    return RunResult(True, log_text, raw_path, version, "")
 
 
 def _fmt(value: float) -> str:
