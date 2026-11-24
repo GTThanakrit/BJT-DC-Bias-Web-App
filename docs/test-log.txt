@@ -66,6 +66,6 @@ test_post_simulate_invalid_re_shows_error_and_no_plot (test_web_simulator.Simula
 test_post_simulate_success_shows_provenance_and_svg (test_web_simulator.SimulatorRouteTest.test_post_simulate_success_shows_provenance_and_svg) ... ok
 
 ----------------------------------------------------------------------
-Ran 65 tests in 0.084s
+Ran 65 tests in 0.079s
 
 OK

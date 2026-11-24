@@ -257,9 +257,12 @@ the application at runtime.
 Tool: Impeccable skill installed for OpenCode (`npx impeccable install -y --project
 --providers=opencode`), engine v0.1.27. The critique used two isolated
 sub-agents (A = design review, B = detector/browser evidence); the snapshot is
-`.impeccable/critique/2026-11-24T11-00-57Z__127-0-0-1-simulator.md`. Design
-Health Score before polish: **18/40 (Poor)**, Operate mode, all ten heuristics
-applied.
+committed at
+[`impeccable-critique-2026-11-24.md`](impeccable-critique-2026-11-24.md)
+(the original tool output lives at
+`.impeccable/critique/2026-11-24T11-00-57Z__127-0-0-1-simulator.md` on the
+development machine). Design Health Score before polish: **18/40 (Poor)**,
+Operate mode, all ten heuristics applied.
 
 - Detector before: 1280×800 → 4 primary findings (`kicker-above-heading`,
   `nested-cards` ×2, `first-viewport-column-overflow`); 390×844 → 4 primary +
@@ -324,6 +327,11 @@ them as valid.
 - **Tests:** full suite re-run fresh before commit — `Ran 65 tests`, `OK`,
   exit code 0; log saved as UTF-8 in `docs/test-log.txt`.
   Original 39 tests unchanged; 26 Lab 04 tests added.
+- **UI evidence:** before/after screenshots in `docs/captures/`, browser graph
+  captures, and the committed Impeccable critique snapshot
+  `docs/impeccable-critique-2026-11-24.md`. A final live re-check ran DC, AC and
+  TRAN in the browser: all three returned `SUCCESS` with real parsed values and
+  SVG plots, and no console errors.
 - **Browser cases:** B1–B7 PASS; B8 PASS with the mobile caveat recorded in the
   table above (detector/CSS evidence rather than a visual mobile plot capture).
   Student must re-check every case independently before submission.

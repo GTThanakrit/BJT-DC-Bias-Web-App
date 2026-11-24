@@ -198,6 +198,7 @@ BJT-DC-Bias-Web-App/
 │   ├── validation.md       # A1–A5 + B1–B8 + design audit
 │   ├── reflection.md       # เว้นให้นักศึกษาเขียนเอง
 │   ├── test-log.txt        # ผลรัน 65 เทสต์ (UTF-8)
+│   ├── impeccable-critique-2026-11-24.md  # snapshot การ critique/polish
 │   ├── captures/           # before/after + หลักฐาน B6/B8
 │   ├── superpowers/        # spec + plan
 │   └── screenshots/
@@ -270,7 +271,8 @@ BJT-DC-Bias-Web-App/
 - **Commit URL:**
   <https://github.com/GTThanakrit/BJT-DC-Bias-Web-App/commit/1e72eaa2c86b1017064ff2c62d1fdfc80290df3d>
 - หมายเหตุ: SHA ด้านบนเป็น commit ที่รวมเอกสาร Lab 04 ฉบับสุดท้าย ถ้ามีการแก้เอกสาร
-  เพื่อบันทึก SHA เองจะเป็นอีก commit หนึ่ง ซึ่งเป็น HEAD สุดท้ายที่ push ขึ้น `main`
+  เพิ่มเติม (เช่น บันทึก SHA หรือเพิ่มหลักฐาน) จะเป็น commit ต่อท้าย ซึ่งเป็น HEAD
+  สุดท้ายที่ push ขึ้น `main` — ตรวจ HEAD ปัจจุบันด้วย `git rev-parse HEAD`
 - `docs/reflection.md` ยังเว้นให้นักศึกษาเขียนเองตามเดิม
 
 ### ตรวจความสามารถในการทำซ้ำจาก anonymous clone
