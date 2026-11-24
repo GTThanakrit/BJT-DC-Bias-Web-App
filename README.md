@@ -24,6 +24,27 @@ Python ฝั่ง Server หน้า HTML ไม่ได้คำนวณ�
 
 - Python 3.10 ขึ้นไป
 - Flask 3.x (ติดตั้งจาก `requirements.txt`)
+- ngspice 47 (สำหรับ Lab 04 CE simulator) — เป็นโปรแกรมภายนอก ไม่ใช่แพ็กเกจ `pip`
+
+### ngspice และ BJT model สำหรับ Lab 04
+
+ตรวจว่าเรียกได้จาก Terminal ก่อนรัน Flask (บน Windows ให้ใช้ `ngspice_con.exe`
+ซึ่งเป็นรุ่น Console; `ngspice.exe` เป็นรุ่น GUI และไม่พิมพ์เวอร์ชัน):
+
+```powershell
+ngspice_con -v
+```
+
+ผลต้องเป็นสายเวอร์ชันของ ngspice ถ้าไม่พบให้ติดตั้ง 7-Zip แล้วดาวน์โหลด
+`ngspice-47_64.7z` จาก <https://ngspice.sourceforge.io/download.html> แตกไฟล์แล้วเพิ่ม
+โฟลเดอร์ที่ contain `ngspice_con.exe` ลงใน `PATH` ของ Session นั้น
+
+ในเครื่องที่ใช้พัฒนา Lab 04 ติดตั้งจริงที่
+`%LOCALAPPDATA%\ngspice\Spice64\bin` และได้เวอร์ชัน `ngspice-47` (สร้าง 11 ส.ค. 2026)
+
+โมเดลที่แนบมา `spice_models/ce_generic.mod` คือ **UNVERIFIED** generic teaching
+NPN ใช้เพื่อทดสอบ adapter เท่านั้น ต้องแทนที่ด้วยโมเดลที่อาจารย์ตรวจก่อนอ้างผลว่า
+ถูกต้องตามหลักวิศวกรรม หน้าเว็บจะแสดงป้าย `UNVERIFIED` ทุกครั้งที่ใช้โมเดลนี้
 
 ## ติดตั้งและรัน
 
