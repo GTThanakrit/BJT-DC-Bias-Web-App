@@ -4,7 +4,16 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from spice_engine import CEParams, build_netlist, validate_sim_params
+from spice_engine import (
+    CEParams,
+    RunResult,
+    build_netlist,
+    parse_ac,
+    parse_op,
+    parse_tran,
+    simulate,
+    validate_sim_params,
+)
 
 
 def fixture_params() -> CEParams:
@@ -64,6 +73,47 @@ class NetlistBuilderTest(unittest.TestCase):
             text = build_netlist("tran", fixture_params(), Path(workdir)).read_text(encoding="utf-8")
         self.assertIn("SIN(0 0.01 1000)", text)
         self.assertIn(".tran 0 0.005 0 1e-05", text)
+
+
+OP_FIXTURE = "vb ve vc v(vc,ve) i(q1)\n2.16 1.50 9.71 8.21 1.50e-3\n"
+AC_FIXTURE = (
+    "freq vdb(vout) vp(vout) vdb(vin) vp(vin)\n"
+    "1.000e+00 -20.0 -170.0 -60.0 -180.0\n"
+    "1.000e+01 -40.0 -180.0 -60.0 -180.0\n"
+)
+TRAN_FIXTURE = (
+    "time v(vin) v(vout)\n"
+    "0.000e+00 0.010 -0.100\n"
+    "1.000e-04 -0.010 0.100\n"
+)
+
+
+class ParserTest(unittest.TestCase):
+    def test_parse_op_reads_columns_and_units(self):
+        op = parse_op(OP_FIXTURE)
+        self.assertAlmostEqual(op.vb_v, 2.16, places=2)
+        self.assertAlmostEqual(op.ic_ma, 1.50, places=2)
+
+    def test_parse_ac_computes_gain_relative_to_vin(self):
+        ac = parse_ac(AC_FIXTURE)
+        self.assertEqual(round(ac.gain_db[0]), 40)
+        self.assertEqual(round(ac.phase_deg[0]), 10)
+
+    def test_parse_ac_reports_cutoff_not_determined_when_no_crossing(self):
+        self.assertIsNone(parse_ac(AC_FIXTURE).cutoff_hz)
+
+    def test_parse_tran_detects_inversion(self):
+        self.assertEqual(parse_tran(TRAN_FIXTURE).phase_relation, "inverted")
+
+    def test_simulate_returns_parse_failed_on_bad_columns(self):
+        with patch(
+            "spice_engine.run_ngspice",
+            return_value=RunResult(True, "nonsense", None, "47", ""),
+        ):
+            result = simulate("dc", fixture_params())
+        self.assertFalse(result.ok)
+        self.assertEqual(result.status, "PARSE FAILED")
+        self.assertIsNone(result.op)
 
 
 class RunnerTest(unittest.TestCase):

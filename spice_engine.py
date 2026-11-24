@@ -11,6 +11,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -116,6 +117,51 @@ class RunResult:
     error: str
 
 
+@dataclass
+class OpResult:
+    """DC operating point values in volts and milliamperes."""
+
+    vb_v: float
+    ve_v: float
+    vc_v: float
+    vce_v: float
+    ic_ma: float
+
+
+@dataclass
+class AcResult:
+    """AC sweep arrays; gain and phase are relative to vin."""
+
+    freq_hz: list[float]
+    gain_db: list[float]
+    phase_deg: list[float]
+    cutoff_hz: float | None
+
+
+@dataclass
+class TranResult:
+    """Time-domain arrays parsed from a .print tran table."""
+
+    time_s: list[float]
+    vin_v: list[float]
+    vout_v: list[float]
+    phase_relation: str
+
+
+@dataclass
+class SimulationResult:
+    """Complete outcome of one requested analysis."""
+
+    mode: str
+    ok: bool
+    status: str
+    message: str
+    op: OpResult | None
+    ac: AcResult | None
+    tran: TranResult | None
+    provenance: dict[str, str]
+
+
 def _engine_executable() -> str:
     """Prefer the Windows console binary; keep ngspice on other platforms."""
 
@@ -190,6 +236,123 @@ def _fmt(value: float) -> str:
     """Format a validated float for a SPICE deck without trailing .0."""
 
     return f"{value:g}"
+
+
+def _numeric_rows(log_text: str, columns: int) -> list[list[float]]:
+    """Read numeric .print table rows, ignoring headers and prose."""
+
+    rows: list[list[float]] = []
+    for line in log_text.splitlines():
+        values: list[float] = []
+        for token in line.replace(",", " ").split():
+            try:
+                values.append(float(token))
+            except ValueError:
+                continue
+        if len(values) >= columns:
+            rows.append(values[-columns:])
+    return rows
+
+
+def parse_op(log_text: str) -> OpResult:
+    """Parse one .print op row into named values with units."""
+
+    rows = _numeric_rows(log_text, 5)
+    if not rows:
+        raise ValueError("no .print op table found")
+    vb_v, ve_v, vc_v, vce_v, ic_a = rows[0]
+    return OpResult(vb_v, ve_v, vc_v, vce_v, ic_a * 1000.0)
+
+
+def parse_ac(log_text: str) -> AcResult:
+    """Parse .print ac rows and compute gain/phase relative to vin."""
+
+    rows = _numeric_rows(log_text, 5)
+    if not rows:
+        raise ValueError("no .print ac table found")
+
+    freq_hz: list[float] = []
+    gain_db: list[float] = []
+    phase_deg: list[float] = []
+    for freq, vdb_out, vp_out, vdb_in, vp_in in rows:
+        freq_hz.append(freq)
+        gain_db.append(vdb_out - vdb_in)
+        phase_deg.append(vp_out - vp_in)
+
+    cutoff_hz: float | None = None
+    for index in range(1, len(gain_db)):
+        if gain_db[index - 1] >= -3.0 and gain_db[index] < -3.0:
+            cutoff_hz = freq_hz[index]
+            break
+
+    return AcResult(freq_hz, gain_db, phase_deg, cutoff_hz)
+
+
+def parse_tran(log_text: str) -> TranResult:
+    """Parse .print tran rows and classify vin/vout phase relation."""
+
+    rows = _numeric_rows(log_text, 3)
+    if not rows:
+        raise ValueError("no .print tran table found")
+
+    time_s: list[float] = []
+    vin_v: list[float] = []
+    vout_v: list[float] = []
+    for time, vin, vout in rows:
+        time_s.append(time)
+        vin_v.append(vin)
+        vout_v.append(vout)
+
+    phase_relation = "non-inverted"
+    if len(vin_v) > 1:
+        mean_in = sum(vin_v) / len(vin_v)
+        mean_out = sum(vout_v) / len(vout_v)
+        covariance = sum(
+            (vin - mean_in) * (vout - mean_out)
+            for vin, vout in zip(vin_v, vout_v)
+        )
+        if covariance < 0:
+            phase_relation = "inverted"
+
+    return TranResult(time_s, vin_v, vout_v, phase_relation)
+
+
+def simulate(mode: str, params: CEParams) -> SimulationResult:
+    """Build, run and parse one analysis, returning provenance with the result."""
+
+    with tempfile.TemporaryDirectory(prefix="ce-run-") as temporary:
+        workdir = Path(temporary)
+        netlist = build_netlist(mode, params, workdir)
+        run = run_ngspice(mode, netlist, workdir)
+        provenance = {
+            "engine": run.engine_version,
+            "model": params.model_name,
+            "log": "run.log (.print)",
+            "status": run.error or "OK",
+        }
+
+        if not run.ok:
+            return SimulationResult(
+                mode, False, run.error or "RUN FAILED", run.error,
+                None, None, None, provenance,
+            )
+
+        try:
+            if mode == "dc":
+                op, ac, tran = parse_op(run.log_text), None, None
+            elif mode == "ac":
+                op, ac, tran = None, parse_ac(run.log_text), None
+            else:
+                op, ac, tran = None, None, parse_tran(run.log_text)
+        except (ValueError, IndexError, TypeError) as exc:
+            provenance["status"] = "PARSE FAILED"
+            return SimulationResult(
+                mode, False, "PARSE FAILED", str(exc),
+                None, None, None, provenance,
+            )
+
+        provenance["status"] = "SUCCESS"
+        return SimulationResult(mode, True, "SUCCESS", "", op, ac, tran, provenance)
 
 
 def build_netlist(mode: str, params: CEParams, workdir: Path) -> Path:
