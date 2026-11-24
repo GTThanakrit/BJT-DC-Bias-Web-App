@@ -330,7 +330,9 @@ them as valid.
 - **Repository audit:** no `.venv/`, `.env`, credentials or large raw run files
   staged; `.opencode/` tool artifacts and the plan/spec files are intentionally
   left unstaged.
-- **Submission commit SHA:** _to be recorded after `git push` (plan Task 9 Step 3)_.
-- **Commit URL:** _to be recorded after push_.
+- **Submission commit SHA:** `1e72eaa2c86b1017064ff2c62d1fdfc80290df3d`
+  (commit `docs: finalise Lab 04 reproduction and validation record`, pushed to `main`).
+- **Commit URL:**
+  <https://github.com/GTThanakrit/BJT-DC-Bias-Web-App/commit/1e72eaa2c86b1017064ff2c62d1fdfc80290df3d>.
 - `docs/reflection.md` placeholders are intentionally untouched; the student
   must write the reflection in their own words before submission.

@@ -266,8 +266,9 @@ BJT-DC-Bias-Web-App/
   (ป้าย `UNVERIFIED` แสดงในหน้าเว็บทุกครั้งที่ใช้)
 - **Versions ที่ใช้รันจริง:** Python 3.15.2, Flask 3.1.3, ngspice 47
 - **Full suite:** 65 tests — `OK` (ดู `docs/test-log.txt`)
-- **Submission commit SHA:** _จะบันทึกหลัง `git push` ตาม plan Task 9 Step 3_
-- **Commit URL:** _จะบันทึกหลัง push_
+- **Submission commit SHA:** `1e72eaa2c86b1017064ff2c62d1fdfc80290df3d`
+- **Commit URL:**
+  <https://github.com/GTThanakrit/BJT-DC-Bias-Web-App/commit/1e72eaa2c86b1017064ff2c62d1fdfc80290df3d>
 - หมายเหตุ: SHA ด้านบนเป็น commit ที่รวมเอกสาร Lab 04 ฉบับสุดท้าย ถ้ามีการแก้เอกสาร
   เพื่อบันทึก SHA เองจะเป็นอีก commit หนึ่ง ซึ่งเป็น HEAD สุดท้ายที่ push ขึ้น `main`
 - `docs/reflection.md` ยังเว้นให้นักศึกษาเขียนเองตามเดิม
