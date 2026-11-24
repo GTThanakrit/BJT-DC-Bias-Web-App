@@ -199,7 +199,8 @@ BJT-DC-Bias-Web-App/
 │   ├── reflection.md       # เว้นให้นักศึกษาเขียนเอง
 │   ├── test-log.txt        # ผลรัน 65 เทสต์ (UTF-8)
 │   ├── impeccable-critique-2026-11-24.md  # snapshot การ critique/polish
-│   ├── captures/           # before/after + หลักฐาน B6/B8
+│   ├── capture-evidence.py # สคริปต์ถ่าย B1–B8 ซ้ำ (playwright + Chrome)
+│   ├── captures/           # before/after + หลักฐาน B1–B8 (Playwright/Chrome)
 │   ├── superpowers/        # spec + plan
 │   └── screenshots/
 ├── requirements.txt
@@ -234,8 +235,9 @@ BJT-DC-Bias-Web-App/
 
 ดูตารางผลจริง ค่าที่สังเกต วิธีตรวจ และ status ได้ที่
 [`docs/validation.md`](docs/validation.md#lab-04--browser-acceptance-cases-b1b8)
-— รันจริงใน OpenCode Browser กับ ngspice 47: **B1–B7 PASS**,
-**B8 PASS โดยมีข้อจำกัด** (ตรวจ mobile แบบ detector/CSS มากกว่าภาพจริง ดูหมายเหตุในตาราง)
+— รันจริงใน OpenCode Browser และ Playwright/Chrome กับ ngspice 47:
+**B1–B8 PASS ทั้งหมด** มี screenshot ทุกเคสใน `docs/captures/`
+(รวม `lab04-b8-mobile-tran.png` ที่ 390 px พร้อมผล TRAN จริง)
 
 - B1 Lab 03 ไม่ regress (IC 1.230 mA, VCE 8.052 V, Forward-Active)
 - B2 DC SPICE จริง (IC 1.278 mA, VCE 7.900 V) แยกจาก analytical

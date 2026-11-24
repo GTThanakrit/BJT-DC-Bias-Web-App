@@ -233,7 +233,7 @@ the application at runtime.
 | B5 waveform + inversion | OpenCode Browser | Analysis = TRAN, RE restored to 1000 Ω, source 10 mV, 1 kHz | non-empty waveform, Vin 0.0100 V, inverted phase | `Samples 508`, `Vin peak 0.0100 V`, `Vout peak 0.0175 V`, `Phase inverted`; axes `Time (ms)`, `Voltage (V)`, legend `Vin`, `Vout` | snapshot after re-submit; form `re=1000, source_peak_v=0.01, source_freq_hz=1000` | PASS |
 | B6 amplitude + frequency change | OpenCode Browser | same as B5 then source 50 mV, 2 kHz | Vout peak scales about 5×; time window halves | `Vin peak 0.0500 V`, `Vout peak 0.0875 V` (5× B5), `Phase inverted`; plot x-axis 0–2.5 ms (B5: 0–5 ms), 508 samples | snapshot + `docs/captures/lab04-b6-tran-changed.png` | PASS |
 | B7 invalid input | OpenCode Browser | RE = 0, TRAN mode | Thai validation message, no fabricated result or plot | `ตรวจสอบข้อมูลอีกครั้ง` / `re: ต้องมากกว่า 0`; no `.plot svg`, no engine-status badge | snapshot of `.alert` and DOM query for plot | PASS |
-| B8 responsive / mode switching | Impeccable `shot` + URL detector at 1280×800 / 390×844; OpenCode Browser for mode switching | desktop and mobile shells; switch DC → AC → TRAN with real runs | no clipped buttons, graphs or units | Desktop (1440 px viewport in the in-app browser): page `scrollWidth 1423` < `innerWidth 1440`; `Run ngspice` button right edge 626 px; `.plot` `scrollWidth 516 / clientWidth 509` with `overflow-x: auto`; SVG 500 px wide; tick and legend computed 13 px; units visible in every mode (`1.949 V`, `1.278 mA`, `4.86 dB`, `0.0175 V`). Mobile 390×844 detector after polish: `[]` (no findings; before polish: 4 primary + 2 advisory). Before/after captures: `docs/captures/before/`, `docs/captures/after/`; results-state `docs/captures/lab04-b8-after-tran-desktop.png` | screenshots + detector JSON + DOM/CSS measurements | PASS (mobile plotted-result state verified structurally, not visually — see note) |
+| B8 responsive / mode switching | Playwright + Chrome headless (real 1280×800 / 390×844 viewports), Impeccable `shot` + URL detector, OpenCode Browser for mode switching | desktop and mobile shells; switch DC → AC → TRAN with real runs | no clipped buttons, graphs or units | Desktop (1440 px viewport in the in-app browser): page `scrollWidth 1423` < `innerWidth 1440`; `Run ngspice` button right edge 626 px; `.plot` `scrollWidth 516 / clientWidth 509` with `overflow-x: auto`; SVG 500 px wide; tick and legend computed 13 px; units visible in every mode (`1.949 V`, `1.278 mA`, `4.86 dB`, `0.0175 V`). Mobile 390×844 detector after polish: `[]` (no findings; before polish: 4 primary + 2 advisory). Before/after captures: `docs/captures/before/`, `docs/captures/after/`; results-state `docs/captures/lab04-b8-after-tran-desktop.png`; **new Playwright/Chrome captures after real runs:** `docs/captures/lab04-b8-desktop-tran.png` (1280×2278) and `docs/captures/lab04-b8-mobile-tran.png` (390×3936, `innerWidth 390`, `scrollWidth 390`, `.plot` `overflow-x: auto`, values `508 samples` / `Vin peak 0.0100 V` / `Vout peak 0.0175 V` / `inverted`) | screenshots + detector JSON + DOM/CSS measurements | PASS |
 
 ### Engine and parsing notes (why the numbers are trustworthy)
 
@@ -285,13 +285,14 @@ Operate mode, all ten heuristics applied.
   hard-codes values, replaces real plots, changes units or moves physics into
   Jinja.
 - Unresolved: 13-input cognitive wall; no reset or re-run-last; raw `re:`
-  error keys and a bare engine-failure message; Bode dual-axis cue; no
-  visually captured mobile plotted-result state (the in-app browser viewport
-  cannot be reduced to 390 px and the app has no GET-based run URL, so mobile
-  evidence is the detector scan plus CSS overflow containment). Sub-agent B's
-  browser calls failed with `[browser.disconnected]` in the child session;
-  the parent browser carried the B8 verification instead. No visual overlay
-  was injected, so none is claimed.
+  error keys and a bare engine-failure message; Bode dual-axis cue. The earlier
+  mobile visual gap is now closed: Playwright + Chrome were installed in the
+  local venv and captured a 390×844 viewport with a real TRAN result
+  (`docs/captures/lab04-b8-mobile-tran.png`), so B8 no longer relies only on the
+  detector scan. Sub-agent B's browser calls failed with `[browser.disconnected]`
+  in the child session; the parent browser and later Playwright runs carried
+  the B8 verification instead. No visual overlay was injected, so none is
+  claimed.
 
 ### Known limitations
 
@@ -331,10 +332,13 @@ them as valid.
   captures, and the committed Impeccable critique snapshot
   `docs/impeccable-critique-2026-11-24.md`. A final live re-check ran DC, AC and
   TRAN in the browser: all three returned `SUCCESS` with real parsed values and
-  SVG plots, and no console errors.
-- **Browser cases:** B1–B7 PASS; B8 PASS with the mobile caveat recorded in the
-  table above (detector/CSS evidence rather than a visual mobile plot capture).
-  Student must re-check every case independently before submission.
+  SVG plots, and no console errors. The B1–B8 screenshots are reproducible with
+  `docs/capture-evidence.py` (`pip install playwright`, Chrome installed, Flask
+  running on port 5000).
+- **Browser cases:** B1–B8 PASS. Playwright/Chrome captures cover every case in
+  `docs/captures/` (`lab04-b1-*` … `lab04-b7-*`, plus desktop and 390 px mobile
+  B8 screenshots after real runs). Student must re-check every case
+  independently before submission.
 - **Repository audit:** no `.venv/`, `.env`, credentials or large raw run files
   staged; `.opencode/` tool artifacts and the plan/spec files are intentionally
   left unstaged.
