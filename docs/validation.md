@@ -219,7 +219,7 @@ the application at runtime.
 | B5 waveform + inversion | OpenCode Browser | Analysis = TRAN, RE restored to 1000 Ω, source 10 mV, 1 kHz | non-empty waveform, Vin 0.0100 V, inverted phase | `Samples 508`, `Vin peak 0.0100 V`, `Vout peak 0.0175 V`, `Phase inverted`; axes `Time (ms)`, `Voltage (V)`, legend `Vin`, `Vout` | snapshot after re-submit; form `re=1000, source_peak_v=0.01, source_freq_hz=1000` | PASS |
 | B6 amplitude + frequency change | OpenCode Browser | same as B5 then source 50 mV, 2 kHz | Vout peak scales about 5×; time window halves | `Vin peak 0.0500 V`, `Vout peak 0.0875 V` (5× B5), `Phase inverted`; plot x-axis 0–2.5 ms (B5: 0–5 ms), 508 samples | snapshot + `docs/captures/lab04-b6-tran-changed.png` | PASS |
 | B7 invalid input | OpenCode Browser | RE = 0, TRAN mode | Thai validation message, no fabricated result or plot | `ตรวจสอบข้อมูลอีกครั้ง` / `re: ต้องมากกว่า 0`; no `.plot svg`, no engine-status badge | snapshot of `.alert` and DOM query for plot | PASS |
-| B8 responsive / mode switching | OpenCode Browser | desktop ~1280 px and mobile ~390 px, switch all three analyses | no clipped buttons, graphs or units | not yet recorded | Task 8 | PENDING |
+| B8 responsive / mode switching | Impeccable `shot` + URL detector at 1280×800 / 390×844; OpenCode Browser for mode switching | desktop and mobile shells; switch DC → AC → TRAN with real runs | no clipped buttons, graphs or units | Desktop (1440 px viewport in the in-app browser): page `scrollWidth 1423` < `innerWidth 1440`; `Run ngspice` button right edge 626 px; `.plot` `scrollWidth 516 / clientWidth 509` with `overflow-x: auto`; SVG 500 px wide; tick and legend computed 13 px; units visible in every mode (`1.949 V`, `1.278 mA`, `4.86 dB`, `0.0175 V`). Mobile 390×844 detector after polish: `[]` (no findings; before polish: 4 primary + 2 advisory). Before/after captures: `docs/captures/before/`, `docs/captures/after/`; results-state `docs/captures/lab04-b8-after-tran-desktop.png` | screenshots + detector JSON + DOM/CSS measurements | PASS (mobile plotted-result state verified structurally, not visually — see note) |
 
 ### Engine and parsing notes (why the numbers are trustworthy)
 
@@ -237,6 +237,44 @@ the application at runtime.
   low-pass: −0.7854 rad at its −3 dB point), so phase is converted to degrees.
 - `.tran 0 <tstop> 0 <tmax>` is rejected by ngspice 47 (`TSTEP is invalid`);
   the netlist uses a positive first step equal to `tmax`.
+
+### Impeccable design audit (Task 8)
+
+Tool: Impeccable skill installed for OpenCode (`npx impeccable install -y --project
+--providers=opencode`), engine v0.1.27. The critique used two isolated
+sub-agents (A = design review, B = detector/browser evidence); the snapshot is
+`.impeccable/critique/2026-11-24T11-00-57Z__127-0-0-1-simulator.md`. Design
+Health Score before polish: **18/40 (Poor)**, Operate mode, all ten heuristics
+applied.
+
+- Detector before: 1280×800 → 4 primary findings (`kicker-above-heading`,
+  `nested-cards` ×2, `first-viewport-column-overflow`); 390×844 → 4 primary +
+  2 advisory (nav contrast 4.4:1, unbalanced heading); static markup → 1
+  likely false positive because the detector could not read the Jinja
+  `url_for` stylesheet. After polish: 390×844 → `[]`; `--changed` → only
+  `side-tab` (pre-existing `.alert` border-left shared with Lab 03) and the
+  same `flat-type-hierarchy` false positive.
+- Applied (UI files only): removed the banned kicker from the simulator header
+  and moved the course/lab label into the subtitle; promoted the UNVERIFIED
+  badge above provenance at 13 px with a Thai next-action line; decluttered
+  `.analysis-select` and simulator-only empty states; made the plot container
+  scroll horizontally with a 500 px minimum SVG width and 13–14 px tick,
+  legend and axis text; darkened the hero gradient and whitened nav links;
+  added `text-wrap` to the subtitle and analytical heading.
+- Rejected as out of Task 8 scope or against the plan's constraints: hiding
+  source/coupling inputs for `.op` (would change form submission), mapping raw
+  error keys and engine-failure reasons in `app.py`, a dual-axis legend cue in
+  `plots.py`, restructuring the stacked comparison panels, and anything that
+  hard-codes values, replaces real plots, changes units or moves physics into
+  Jinja.
+- Unresolved: 13-input cognitive wall; no reset or re-run-last; raw `re:`
+  error keys and a bare engine-failure message; Bode dual-axis cue; no
+  visually captured mobile plotted-result state (the in-app browser viewport
+  cannot be reduced to 390 px and the app has no GET-based run URL, so mobile
+  evidence is the detector scan plus CSS overflow containment). Sub-agent B's
+  browser calls failed with `[browser.disconnected]` in the child session;
+  the parent browser carried the B8 verification instead. No visual overlay
+  was injected, so none is claimed.
 
 ### Known limitations
 

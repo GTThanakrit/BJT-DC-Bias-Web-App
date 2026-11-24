@@ -26,7 +26,7 @@ body {
 .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
 
 .hero {
-  background: linear-gradient(115deg, #0c304f, #20577d 70%, #0c6e79);
+  background: linear-gradient(115deg, #0c304f, #1b4b6e 70%, #0a5b65);
   color: #fff;
   padding: 36px 0 30px;
 }
@@ -40,7 +40,7 @@ body {
 }
 
 .hero h1 { margin: 0 0 6px; font-size: clamp(1.5rem, 3.6vw, 2.1rem); }
-.subtitle { margin: 0; color: #dceffb; font-size: 14px; }
+.subtitle { margin: 0; color: #dceffb; font-size: 14px; text-wrap: pretty; }
 
 .layout {
   display: grid;
@@ -160,7 +160,7 @@ button:active { transform: translateY(1px); }
   padding: 5px 11px;
   border: 1px solid rgba(255, 255, 255, .45);
   border-radius: 999px;
-  color: #e8f5ff;
+  color: #fff;
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
@@ -170,17 +170,17 @@ button:active { transform: translateY(1px); }
 
 .sim-layout { grid-template-columns: minmax(320px, .9fr) minmax(0, 1.1fr); }
 .sim-analytical { grid-column: 1 / -1; }
+.sim-analytical h2 { text-wrap: balance; }
 
 .analysis-select {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  margin: 0 0 18px;
-  padding: 12px 14px;
-  background: #f7fafd;
-  border: 1px solid var(--line);
-  border-radius: 7px;
+  margin: 0 0 16px;
+  padding: 0;
+  background: transparent;
+  border: 0;
 }
 .analysis-select label { font-size: 14px; font-weight: 700; color: #113c60; }
 .analysis-select select {
@@ -221,14 +221,15 @@ button:active { transform: translateY(1px); }
 }
 .badge {
   display: inline-block;
-  margin: 0 0 14px;
-  padding: 3px 9px;
+  margin: 0 0 6px;
+  padding: 5px 11px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: .04em;
+  letter-spacing: .02em;
 }
-.badge-warn { background: var(--warn-bg); color: var(--warn-fg); }
+.badge-warn { background: var(--warn-bg); color: var(--warn-fg); border: 1px solid #e0b276; }
+.badge-note { margin: 0 0 12px; font-size: 13px; color: var(--warn-fg); font-weight: 700; }
 
 .result-block { margin-top: 18px; }
 .result-block h3 {
@@ -242,13 +243,14 @@ button:active { transform: translateY(1px); }
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
+  overflow-x: auto;
 }
-.plot svg { display: block; width: 100%; height: auto; }
+.plot svg { display: block; width: 100%; min-width: 500px; height: auto; }
 .plot .grid { stroke: #e7eff6; stroke-width: 1; }
 .plot .axis { stroke: #92a9bc; stroke-width: 1.5; }
-.plot .tick { fill: var(--muted); font-size: 10px; }
-.plot .legend text { fill: var(--ink); font-size: 11px; font-weight: 700; }
-.plot text { fill: var(--ink); font-size: 12px; }
+.plot .tick { fill: var(--muted); font-size: 13px; }
+.plot .legend text { fill: var(--ink); font-size: 13px; font-weight: 700; }
+.plot text { fill: var(--ink); font-size: 14px; }
 
 .region {
   display: flex;
@@ -291,6 +293,11 @@ code { font: 0.92em Consolas, Menlo, monospace; background: #eef4fa; padding: 1p
   background: #f7fafd;
   border: 1px dashed var(--line);
   border-radius: 7px;
+}
+.sim-results .empty, .sim-analytical .empty {
+  padding: 18px 8px;
+  background: transparent;
+  border: 0;
 }
 
 .formulas { grid-column: 1 / -1; }

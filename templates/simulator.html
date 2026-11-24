@@ -29,9 +29,8 @@
 
   <header class="hero">
     <div class="wrap">
-      <p class="eyebrow">ENG29 2121 · LAB 04</p>
       <h1>CE Amplifier Simulator</h1>
-      <p class="subtitle">Voltage-divider Common-Emitter · ngspice .op / .ac / .tran · Thai UI with engineering terms</p>
+      <p class="subtitle">ENG29 2121 · LAB 04 · Voltage-divider Common-Emitter · ngspice .op / .ac / .tran · Thai UI with engineering terms</p>
       <nav class="top-nav" aria-label="Lab navigation">
         <a href="{{ url_for('index') }}">Lab 03 · DC Bias</a>
         <a href="{{ url_for('simulator') }}" aria-current="page">Lab 04 · CE Simulator</a>
@@ -112,12 +111,14 @@
         <strong>{{ sim.status }}</strong>
       </p>
 
+      {% if "UNVERIFIED" in sim.provenance.model %}
+      <p class="badge badge-warn">UNVERIFIED teaching model · ยังไม่ตรวจสอบโดยอาจารย์</p>
+      <p class="badge-note">เทียบค่ากับตาราง Analytical reference ก่อนสรุปผล</p>
+      {% endif %}
+
       <p class="provenance">
         Source: ngspice {{ sim.provenance.engine }} · model {{ sim.provenance.model }} · run {{ sim.provenance.log }}
       </p>
-      {% if "UNVERIFIED" in sim.provenance.model %}
-      <p class="badge badge-warn">UNVERIFIED teaching model · ยังไม่ตรวจสอบโดยอาจารย์</p>
-      {% endif %}
 
       {% if sim.message %}
       <div class="alert alert-error" role="status">
