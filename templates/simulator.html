@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CE Amplifier Simulator · ENG29 2121</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  {% macro result_table(title, rows) %}
+  <div class="result-block">
+    <h3>{{ title }}</h3>
+    <table>
+      <thead>
+        <tr><th>ปริมาณ</th><th>ความหมาย</th><th>ค่า</th></tr>
+      </thead>
+      <tbody>
+        {% for symbol, meaning, value in rows %}
+        <tr>
+          <th scope="row"><code>{{ symbol }}</code></th>
+          <td>{{ meaning }}</td>
+          <td class="value">{{ value }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endmacro %}
+
+  <header class="hero">
+    <div class="wrap">
+      <p class="eyebrow">ENG29 2121 · LAB 04</p>
+      <h1>CE Amplifier Simulator</h1>
+      <p class="subtitle">Voltage-divider Common-Emitter · ngspice .op / .ac / .tran · Thai UI with engineering terms</p>
+      <nav class="top-nav" aria-label="Lab navigation">
+        <a href="{{ url_for('index') }}">Lab 03 · DC Bias</a>
+        <a href="{{ url_for('simulator') }}" aria-current="page">Lab 04 · CE Simulator</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap layout sim-layout">
+    <section class="panel" aria-labelledby="sim-input-title">
+      <h2 id="sim-input-title">พารามิเตอร์วงจรและแหล่งสัญญาณ</h2>
+
+      {% if errors %}
+      <div class="alert alert-error" role="alert">
+        <strong>ตรวจสอบข้อมูลอีกครั้ง</strong>
+        <ul>
+          {% for key, message in errors.items() %}
+          <li>{{ key }}: {{ message }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      {% if form_error %}
+      <div class="alert alert-error" role="alert">
+        <strong>รันไม่สำเร็จ</strong>
+        <p>{{ form_error }}</p>
+      </div>
+      {% endif %}
+
+      <form method="post" action="{{ url_for('simulate_ce') }}" novalidate>
+        <div class="analysis-select{% if errors.get('analysis') %} has-error{% endif %}">
+          <label for="analysis">Analysis</label>
+          <select name="analysis" id="analysis">
+            {% for key, label in analyses %}
+            <option value="{{ key }}"{% if key == analysis %} selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          {% if errors.get('analysis') %}<p class="field-error">{{ errors['analysis'] }}</p>{% endif %}
+        </div>
+
+        {% for group_key, group_label in groups %}
+        <fieldset class="sim-group">
+          <legend>{{ group_label }}</legend>
+          <div class="fields">
+            {% for field in fields if field.group == group_key %}
+            <div class="field{% if field.error %} has-error{% endif %}">
+              <label for="sim-{{ field.key }}">
+                <span class="field-label">{{ field.label }}</span>
+                {% if field.unit %}<span class="field-unit">{{ field.unit }}</span>{% endif %}
+              </label>
+              <input
+                type="text"
+                inputmode="decimal"
+                id="sim-{{ field.key }}"
+                name="{{ field.key }}"
+                value="{{ field.value }}"
+                autocomplete="off"
+                {% if field.error %}aria-invalid="true" aria-describedby="sim-{{ field.key }}-error"{% endif %}>
+              <p class="field-help">{{ field.help }}</p>
+              {% if field.error %}<p class="field-error" id="sim-{{ field.key }}-error">{{ field.error }}</p>{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </fieldset>
+        {% endfor %}
+
+        <p class="hint">ความต้านทานเป็นΩ, C เป็นµF, แหล่งสัญญาณเป็น V และ Hz · ผลทั้งหมดคำนวณฝั่ง Server</p>
+        <button type="submit">Run ngspice</button>
+      </form>
+    </section>
+
+    <section class="panel sim-results" aria-labelledby="spice-title" aria-live="polite">
+      <h2 id="spice-title">SPICE Results</h2>
+
+      {% if sim %}
+      <p class="region region-{{ 'ok' if sim.status == 'SUCCESS' else 'bad' }}">
+        <span>Engine status</span>
+        <strong>{{ sim.status }}</strong>
+      </p>
+
+      <p class="provenance">
+        Source: ngspice {{ sim.provenance.engine }} · model {{ sim.provenance.model }} · run {{ sim.provenance.log }}
+      </p>
+      {% if "UNVERIFIED" in sim.provenance.model %}
+      <p class="badge badge-warn">UNVERIFIED teaching model · ยังไม่ตรวจสอบโดยอาจารย์</p>
+      {% endif %}
+
+      {% if sim.message %}
+      <div class="alert alert-error" role="status">
+        <p>{{ sim.message }}</p>
+      </div>
+      {% endif %}
+
+      {% if sim.op_rows %}{{ result_table('DC operating point (.op)', sim.op_rows) }}{% endif %}
+      {% if sim.ac_rows %}{{ result_table('AC sweep (.ac)', sim.ac_rows) }}{% endif %}
+      {% if sim.tran_rows %}{{ result_table('Transient (.tran)', sim.tran_rows) }}{% endif %}
+
+      {% if sim.plot_svg %}
+      <div class="plot">
+        {{ sim.plot_svg | safe }}
+      </div>
+      {% endif %}
+      {% else %}
+      <p class="empty">
+        เลือก Analysis กรอกค่าแล้วกด <strong>Run ngspice</strong>
+        ผลจากเครื่องจำลองจะแสดงที่นี่พร้อม Engine status และ provenance
+      </p>
+      {% endif %}
+    </section>
+
+    <section class="panel sim-analytical" aria-labelledby="analytical-title">
+      <h2 id="analytical-title">Analytical reference · แยกจาก SPICE</h2>
+      <p class="provenance">Source: dc_bias.py · β/VBE constant</p>
+      {% if sim and sim.analytical_rows %}
+      {{ result_table('Forward-Active divider calculation', sim.analytical_rows) }}
+      <p class="muted">
+        ตัวเลขนี้มาจากสมการ β/VBE คงที่ ไม่ใช่ ngspice · ใช้เปรียบเทียบเท่านั้น
+        ความคลาดเคลื่อนเกิดจาก BJT model และ Early effect
+      </p>
+      {% else %}
+      <p class="empty">ผลวิเคราะห์แบบสมการจะแสดงหลังรัน ngspice สำเร็จ</p>
+      {% endif %}
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <p>results must be checked against the selected BJT model and the real circuit before engineering use</p>
+  </footer>
+</body>
+</html>
