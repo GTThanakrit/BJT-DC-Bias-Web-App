@@ -192,6 +192,66 @@ Ran 39 tests — OK
 
 Screenshot of the reference case computed by the running Flask app.
 
+## Lab 04 — CE amplifier simulator (real ngspice evidence)
+
+**Engine:** `** ngspice-47 : Circuit level simulation program` (console binary
+`ngspice_con.exe`). **Model:** `CE_UNVERIFIED` from
+`spice_models/ce_generic.mod` (`NPN(BF=100 VAF=100 IS=1E-14)`) — a generic
+teaching model, explicitly marked UNVERIFIED in the UI and **not** checked by
+an instructor. **Method:** OpenCode Browser against the live Flask app at
+`http://127.0.0.1:5000/`; Playwright MCP is not configured on this machine.
+Values were read from a fresh accessibility snapshot / DOM text after each
+real POST, not from unit-test fixtures. Numerical smoke runs were also made
+through `spice_engine.simulate()` using the real binary.
+
+Every observed SPICE number below came from a batch log written by ngspice
+itself. The captured logs are kept as parser fixtures in `tests/fixtures/`
+(`ngspice_dc_real.log`, `ngspice_ac_real.log`, `ngspice_tran_real.log`); they
+are evidence of the engine's real output format, never engine results used by
+the application at runtime.
+
+| Case | Method | Input | Expected/Reference | Observed | Evidence | Status |
+|---|---|---|---|---|---|---|
+| B1 regression | OpenCode Browser | Lab 03 divider: VCC 12 V, R1 100 kΩ, R2 22 kΩ, RC 2.2 kΩ, RE 1 kΩ, β 100, VBE 0.7 V | A1 hand calculation: IC 1.2299 mA, VCE 8.0522 V, Forward-Active | `IC 1.230 mA`, `VCE 8.052 V`, region `Forward-Active`; all nine rows as in A1 | post-submit snapshot at `/`; full-page screenshot captured | PASS |
+| B2 DC SPICE | OpenCode Browser | defaults (same divider values), Analysis = DC | five labelled SPICE values with units, real `.op`, separate analytical panel | Engine status `SUCCESS`; `VB 1.949 V`, `VE 1.289 V`, `VC 9.189 V`, `VCE 7.900 V`, `IC 1.278 mA`; analytical panel separately shows `IC 1.230 mA`, `VCE 8.052 V` | snapshot of `.sim-results` and `.sim-analytical`; provenance line shows ngspice-47 + CE_UNVERIFIED | PASS |
+| B3 change RE only | OpenCode Browser | RE 1000 → 2000 Ω, all other fields unchanged | IC must fall, VE and VCE must change | `VE 1.405 V`, `VC 10.469 V`, `VCE 9.065 V`, `IC 0.696 mA` (from 1.278 mA) | snapshot after re-submit; form value `re=2000` | PASS |
+| B4 Bode axes/units | OpenCode Browser | Analysis = AC (RE 2000 Ω retained from B3), defaults otherwise | log-frequency axis in Hz, gain in dB, phase in deg, legend, real points | `Points 141`, `Gain low -8.28 dB`, `Gain high -1.14 dB`, `Phase low -83.8 deg`, `Cutoff ไม่พบในช่วงสแกน`; SVG text includes `Frequency (Hz)`, `Gain (dB)`, `Phase (deg)`, `Vin`/`Vout`-style legend | snapshot + SVG text nodes (20) | PASS |
+| B5 waveform + inversion | OpenCode Browser | Analysis = TRAN, RE restored to 1000 Ω, source 10 mV, 1 kHz | non-empty waveform, Vin 0.0100 V, inverted phase | `Samples 508`, `Vin peak 0.0100 V`, `Vout peak 0.0175 V`, `Phase inverted`; axes `Time (ms)`, `Voltage (V)`, legend `Vin`, `Vout` | snapshot after re-submit; form `re=1000, source_peak_v=0.01, source_freq_hz=1000` | PASS |
+| B6 amplitude + frequency change | OpenCode Browser | same as B5 then source 50 mV, 2 kHz | Vout peak scales about 5×; time window halves | `Vin peak 0.0500 V`, `Vout peak 0.0875 V` (5× B5), `Phase inverted`; plot x-axis 0–2.5 ms (B5: 0–5 ms), 508 samples | snapshot + `docs/captures/lab04-b6-tran-changed.png` | PASS |
+| B7 invalid input | OpenCode Browser | RE = 0, TRAN mode | Thai validation message, no fabricated result or plot | `ตรวจสอบข้อมูลอีกครั้ง` / `re: ต้องมากกว่า 0`; no `.plot svg`, no engine-status badge | snapshot of `.alert` and DOM query for plot | PASS |
+| B8 responsive / mode switching | OpenCode Browser | desktop ~1280 px and mobile ~390 px, switch all three analyses | no clipped buttons, graphs or units | not yet recorded | Task 8 | PENDING |
+
+### Engine and parsing notes (why the numbers are trustworthy)
+
+- ngspice 47 suppresses `.print` tables and the `.op` summary when `-r` is
+  supplied (`.print line ignored since rawfile was produced.`). The adapter
+  therefore runs the batch deck without `-r` and parses the human-inspectable
+  log; no `.raw` binary is read. `RunResult.raw_path` is kept for interface
+  compatibility and is `None` in this mode.
+- `.print op v(vc,ve)` is not accepted by this build; the netlist uses
+  `v(vc)-v(ve)`. Collector current comes from the real `.op` BJT block
+  (`ic 0.00127819` A → 1.278 mA), not from an unavailable `q1#branch` vector.
+- `.print ac` writes one table per vector group, repeated across pages. The
+  parser merges the `vout` and `vin` tables by frequency before computing
+  gain/phase. This build reports `vp()` in **radians** (verified with an RC
+  low-pass: −0.7854 rad at its −3 dB point), so phase is converted to degrees.
+- `.tran 0 <tstop> 0 <tmax>` is rejected by ngspice 47 (`TSTEP is invalid`);
+  the netlist uses a positive first step equal to `tmax`.
+
+### Known limitations
+
+- The generic BJT model is UNVERIFIED; SPICE and analytical DC results differ
+  (IC 1.278 mA vs 1.230 mA) because ngspice uses a real BJT model with Early
+  effect, while `dc_bias.py` assumes constant β and VBE. The UI keeps them in
+  separate panels and says the comparison is illustrative only.
+- The −3 dB cutoff is reported only when an absolute −3 dB crossing exists in
+  the 1 Hz–10 MHz sweep; for the unbypassed reference circuit the sweep never
+  falls below 0 dB, so the UI says `ไม่พบในช่วงสแกน` instead of inventing a value.
+- The Flask process resolves `ngspice_con` from PATH or the standard Windows
+  `%LOCALAPPDATA%\ngspice\Spice64\bin` install location; if neither is present
+  the UI reports `ENGINE NOT AVAILABLE` rather than showing numbers.
+- Student must independently check and own every case above before submission.
+
 ## Limitations acknowledged
 
 The model assumes constant β and VBE and ignores Early effect, leakage,

@@ -7,6 +7,7 @@ HTTP or HTML; Flask passes in a CEParams value and receives a netlist path.
 from __future__ import annotations
 
 import math
+import os
 import re
 import shutil
 import subprocess
@@ -24,6 +25,12 @@ _NUMERIC_FIELDS = (
 _RESISTANCE_FIELDS = ("r1", "r2", "rc", "re", "rl")
 _CAPACITANCE_FIELDS = ("cin_uf", "cout_uf")
 _MODEL_NAME_RE = re.compile(r"^[A-Za-z0-9_]+$")
+_NUMBER_RE = re.compile(r"^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?$")
+_OP_IC_RE = re.compile(
+    r"^\s*ic\s+([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+_RAD_TO_DEG = 180.0 / math.pi
 
 
 @dataclass(frozen=True)
@@ -168,7 +175,18 @@ def _engine_executable() -> str:
     resolved = shutil.which("ngspice_con") or shutil.which("ngspice")
     if resolved:
         return resolved
-    return "ngspice_con" if sys.platform.startswith("win") else "ngspice"
+    if sys.platform.startswith("win"):
+        # The flask process may not inherit a shell's temporary PATH change.
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        if local_app_data:
+            candidate = (
+                Path(local_app_data)
+                / "ngspice" / "Spice64" / "bin" / "ngspice_con.exe"
+            )
+            if candidate.exists():
+                return str(candidate)
+        return "ngspice_con"
+    return "ngspice"
 
 
 def get_engine_version(timeout: int = 5) -> str:
@@ -197,13 +215,13 @@ def run_ngspice(
     """Run one netlist in batch mode and classify the outcome."""
 
     version = get_engine_version()
+    # ngspice 47 suppresses .print tables and the .op summary when -r is used,
+    # so the human-inspectable log is the only evidence source for v1.
     command = [
         _engine_executable(),
         "-b",
         "-o",
         "run.log",
-        "-r",
-        "run.raw",
         netlist.name,
     ]
 
@@ -238,46 +256,149 @@ def _fmt(value: float) -> str:
     return f"{value:g}"
 
 
-def _numeric_rows(log_text: str, columns: int) -> list[list[float]]:
-    """Read numeric .print table rows, ignoring headers and prose."""
+def _tables(log_text: str) -> list[tuple[list[str], list[list[float]]]]:
+    """Read named .print tables from a real ngspice batch log.
 
+    ngspice 47 writes one table per printed vector group, repeating the
+    header on each page. A leading ``Index`` column is dropped; simple
+    header-plus-rows fixtures are accepted as well.
+    """
+
+    tables: list[tuple[list[str], list[list[float]]]] = []
+    headers: list[str] | None = None
     rows: list[list[float]] = []
-    for line in log_text.splitlines():
-        values: list[float] = []
-        for token in line.replace(",", " ").split():
-            try:
-                values.append(float(token))
-            except ValueError:
-                continue
-        if len(values) >= columns:
-            rows.append(values[-columns:])
-    return rows
+
+    def close() -> None:
+        if headers is not None and rows:
+            tables.append((headers, rows))
+
+    for raw_line in log_text.splitlines():
+        line = raw_line.strip().strip("\f").strip()
+        if not line:
+            close()
+            headers, rows = None, []
+            continue
+        tokens = line.replace(",", " ").split()
+        if tokens[0].lower() == "index" and len(tokens) > 1:
+            close()
+            headers, rows = [token.lower() for token in tokens[1:]], []
+            continue
+        numbers: list[float] = []
+        for token in tokens:
+            if not _NUMBER_RE.fullmatch(token):
+                break
+            numbers.append(float(token))
+        if headers is None:
+            if not numbers:
+                headers, rows = [token.lower() for token in tokens], []
+            continue
+        if not numbers:
+            continue
+        if len(numbers) > len(headers):
+            numbers = numbers[-len(headers):]
+        if len(numbers) == len(headers):
+            rows.append(numbers)
+        elif rows:
+            close()
+            headers, rows = None, []
+    close()
+    return tables
+
+
+def _column(headers: list[str], *names: str) -> int | None:
+    for name in names:
+        if name.lower() in headers:
+            return headers.index(name.lower())
+    return None
+
+
+def _op_ic_amperes(log_text: str, tables: list[tuple[list[str], list[list[float]]]]) -> float:
+    """Read collector current from the real .op BJT block or a fixture column."""
+
+    match = _OP_IC_RE.search(log_text)
+    if match:
+        return float(match.group(1))
+    for headers, rows in tables:
+        index = _column(headers, "i(q1)", "i(q1#branch)", "ic")
+        if index is not None and rows:
+            return rows[0][index]
+    raise ValueError("no operating-point collector current found")
 
 
 def parse_op(log_text: str) -> OpResult:
-    """Parse one .print op row into named values with units."""
+    """Parse .print op voltages and the .op collector current with units."""
 
-    rows = _numeric_rows(log_text, 5)
-    if not rows:
-        raise ValueError("no .print op table found")
-    vb_v, ve_v, vc_v, vce_v, ic_a = rows[0]
-    return OpResult(vb_v, ve_v, vc_v, vce_v, ic_a * 1000.0)
+    tables = _tables(log_text)
+    for headers, rows in tables:
+        vb = _column(headers, "v(vb)", "vb")
+        ve = _column(headers, "v(ve)", "ve")
+        vc = _column(headers, "v(vc)", "vc")
+        if None in (vb, ve, vc) or not rows:
+            continue
+        row = rows[0]
+        vce_column = _column(headers, "v(vc)-v(ve)", "v(vc,ve)", "vce")
+        vce = row[vce_column] if vce_column is not None else row[vc] - row[ve]
+        return OpResult(row[vb], row[ve], row[vc], vce, _op_ic_amperes(log_text, tables) * 1000.0)
+    raise ValueError("no .print op table found")
+
+
+def _ac_series(
+    table: tuple[list[str], list[list[float]]], role: str
+) -> dict[float, tuple[float, float]]:
+    headers, rows = table
+    freq = _column(headers, "frequency", "freq")
+    if role == "out":
+        db = _column(headers, "vdb(vout)", "vdb(out)")
+        phase = _column(headers, "vp(vout)", "vp(out)")
+    else:
+        db = _column(headers, "vdb(vin)", "vdb(in)")
+        phase = _column(headers, "vp(vin)", "vp(in)")
+    if None in (freq, db, phase):
+        raise ValueError("missing .print ac columns")
+    return {row[freq]: (row[db], row[phase]) for row in rows}
 
 
 def parse_ac(log_text: str) -> AcResult:
-    """Parse .print ac rows and compute gain/phase relative to vin."""
+    """Parse .print ac tables and compute gain/phase relative to vin.
 
-    rows = _numeric_rows(log_text, 5)
-    if not rows:
+    ngspice 47 prints vout and vin in separate tables and reports vp() in
+    radians, so the two tables are merged by frequency and phase converted
+    to degrees.
+    """
+
+    out_tables: list[tuple[list[str], list[list[float]]]] = []
+    in_tables: list[tuple[list[str], list[list[float]]]] = []
+    for table in _tables(log_text):
+        headers = table[0]
+        if _column(headers, "frequency", "freq") is None:
+            continue
+        if _column(headers, "vdb(vout)", "vdb(out)") is not None:
+            out_tables.append(table)
+        if _column(headers, "vdb(vin)", "vdb(in)") is not None:
+            in_tables.append(table)
+    if not out_tables or not in_tables:
         raise ValueError("no .print ac table found")
 
+    out: dict[float, tuple[float, float]] = {}
+    reference: dict[float, tuple[float, float]] = {}
+    for table in out_tables:
+        out.update(_ac_series(table, "out"))
+    for table in in_tables:
+        reference.update(_ac_series(table, "in"))
     freq_hz: list[float] = []
     gain_db: list[float] = []
     phase_deg: list[float] = []
-    for freq, vdb_out, vp_out, vdb_in, vp_in in rows:
-        freq_hz.append(freq)
-        gain_db.append(vdb_out - vdb_in)
-        phase_deg.append(vp_out - vp_in)
+    for frequency in sorted(out):
+        if frequency not in reference:
+            continue
+        out_db, out_phase = out[frequency]
+        in_db, in_phase = reference[frequency]
+        freq_hz.append(frequency)
+        gain_db.append(out_db - in_db)
+        phase_deg.append((out_phase - in_phase) * _RAD_TO_DEG)
+
+    if not freq_hz:
+        raise ValueError("no .print ac table found")
 
     cutoff_hz: float | None = None
     for index in range(1, len(gain_db)):
@@ -289,19 +410,23 @@ def parse_ac(log_text: str) -> AcResult:
 
 
 def parse_tran(log_text: str) -> TranResult:
-    """Parse .print tran rows and classify vin/vout phase relation."""
-
-    rows = _numeric_rows(log_text, 3)
-    if not rows:
-        raise ValueError("no .print tran table found")
+    """Parse .print tran tables and classify vin/vout phase relation."""
 
     time_s: list[float] = []
     vin_v: list[float] = []
     vout_v: list[float] = []
-    for time, vin, vout in rows:
-        time_s.append(time)
-        vin_v.append(vin)
-        vout_v.append(vout)
+    for headers, rows in _tables(log_text):
+        time = _column(headers, "time")
+        vin = _column(headers, "v(vin)", "vin")
+        vout = _column(headers, "v(vout)", "vout")
+        if None in (time, vin, vout):
+            continue
+        for row in rows:
+            time_s.append(row[time])
+            vin_v.append(row[vin])
+            vout_v.append(row[vout])
+    if not time_s:
+        raise ValueError("no .print tran table found")
 
     phase_relation = "non-inverted"
     if len(vin_v) > 1:
@@ -385,14 +510,14 @@ def build_netlist(mode: str, params: CEParams, workdir: Path) -> Path:
 
     if mode == "dc":
         lines.append(".op")
-        lines.append(".print op v(vb) v(ve) v(vc) v(vc,ve) i(q1)")
+        lines.append(".print op v(vb) v(ve) v(vc) v(vc)-v(ve)")
     elif mode == "ac":
         lines.append(".ac dec 20 1 10Meg")
         lines.append(".print ac vdb(vout) vp(vout) vdb(vin) vp(vin)")
     else:
         tstop = 5.0 / params.source_freq_hz
         tmax = 1.0 / (100.0 * params.source_freq_hz)
-        lines.append(f".tran 0 {_fmt(tstop)} 0 {_fmt(tmax)}")
+        lines.append(f".tran {_fmt(tmax)} {_fmt(tstop)} 0 {_fmt(tmax)}")
         lines.append(".print tran v(vin) v(vout)")
 
     lines.append(".end")

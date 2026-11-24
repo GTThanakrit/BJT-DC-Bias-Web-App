@@ -41,6 +41,12 @@ ngspice_con -v
 
 ในเครื่องที่ใช้พัฒนา Lab 04 ติดตั้งจริงที่
 `%LOCALAPPDATA%\ngspice\Spice64\bin` และได้เวอร์ชัน `ngspice-47` (สร้าง 11 ส.ค. 2026)
+แม้ Flask จะเริ่มโดยไม่ได้เพิ่ม PATH ก็ตาม adapter จะลองตำแหน่งมาตรฐานนี้เองก่อน
+รายงาน `ENGINE NOT AVAILABLE`
+
+ngspice 47 เขียนตาราง `.print` ลง log เฉพาะตอนที่ไม่ใช้ `-r` ดังนั้น adapter จึงรัน
+แบบไม่สร้าง `.raw` และอ่าน `run.log` ที่เป็นข้อความเท่านั้น ตัวอย่าง log จริงจากเครื่อง
+เก็บไว้ใน `tests/fixtures/ngspice_*_real.log` เพื่อทดสอบ parser (ไม่ใช่ค่าที่แอปใช้รัน)
 
 โมเดลที่แนบมา `spice_models/ce_generic.mod` คือ **UNVERIFIED** generic teaching
 NPN ใช้เพื่อทดสอบ adapter เท่านั้น ต้องแทนที่ด้วยโมเดลที่อาจารย์ตรวจก่อนอ้างผลว่า
